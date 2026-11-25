@@ -271,9 +271,11 @@ Connector shows each page to whom the site shows it:
   count;
 - service tokens (bots such as the Support Agent), when the source is open
   to them, read what is meant for everyone the source is open to: the
-  public pages and the pages for one of the source's access groups (with the
-  site's staff group as access group, every staff page). Pages for other
-  groups, such as the IT or HR operators' pages, stay with their members.
+  public pages and the pages meant for all of the source's access groups
+  (with the site's staff group as the one access group, every staff page).
+  Pages for other groups, such as the IT or HR operators' pages, stay with
+  their members; with several access groups, bots read only pages meant for
+  all of them.
 
 Group names count from wherever Connector knows them (sign-in, the Keycloak
 directory, SCIM, groups made here), as for every source: name no group here

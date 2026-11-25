@@ -213,11 +213,16 @@ describe("IT Knowledge Base", () => {
     expect(found(after.body)["itkb:page:tool.vpn"]).toEqual(["rules", null]);
     expect(found(after.body)["itkb:page:guideline.passwords"]).toEqual(["knowledge", null]);
 
-    // A source open to everyone signed in has no group of its own: bots read only public pages.
-    await request("PATCH", `/api/v1/admin/sources/${source.id}`, {
-      userId: admin.id,
-      body: { accessGroups: [] },
-    });
+    // Bots read only pages meant for everyone the source is open to: all of its access groups.
+    const openTo = (accessGroups: string[]) =>
+      request("PATCH", `/api/v1/admin/sources/${source.id}`, { userId: admin.id, body: { accessGroups } });
+    await openTo([OPERATORS]);
+    expect(await botTitles()).toEqual(["Firewall changes", "Guest wifi"]);
+    // Staff and operators: staff pages are not for operators outside staff, operator pages not for staff.
+    await openTo([STAFF, OPERATORS]);
+    expect(await botTitles()).toEqual(["Guest wifi"]);
+    // Everyone signed in: no group of its own, only public pages.
+    await openTo([]);
     expect(await botTitles()).toEqual(["Guest wifi"]);
   });
 
