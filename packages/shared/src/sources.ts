@@ -9,7 +9,7 @@ import { z } from "zod";
  * - webhook: the app sends its content; Connector keeps a search index of it
  *   and drops what the app removes.
  */
-export const SOURCE_KINDS = ["handbook", "logbook", "library", "crm", "notion"] as const;
+export const SOURCE_KINDS = ["handbook", "logbook", "library", "crm", "notion", "itkb"] as const;
 export const sourceKindSchema = z.enum(SOURCE_KINDS);
 export type SourceKind = z.infer<typeof sourceKindSchema>;
 
@@ -55,6 +55,13 @@ export const SOURCE_KIND_INFO: Record<SourceKind, SourceKindInfo> = {
     block: "Records",
     types: ["contact", "organization", "deal", "event", "meeting", "segment"],
   },
+  itkb: {
+    label: "IT Knowledge Base",
+    holds: "How IT works: tools, access, devices, security, onboarding and the IT policies",
+    delivery: "webhook",
+    block: "Knowledge base",
+    types: ["page"],
+  },
   notion: {
     label: "Notion",
     holds: "Pages of the Notion databases an admin chose: wikis, projects, meeting notes, lists",
@@ -82,9 +89,9 @@ export const AUTHORITY_LABELS: Record<Authority, string> = {
 };
 
 export const AUTHORITY_DESCRIPTIONS: Record<Authority, string> = {
-  rules: "Handbook pages in the spaces that hold the purpose and the rules",
+  rules: "Handbook pages in the spaces that hold the purpose and the rules, and IT Knowledge Base policies",
   decision: "Logbook decisions that are in force; the newest wins",
-  knowledge: "Handbook pages, and Notion databases set to this level",
+  knowledge: "Handbook pages, IT Knowledge Base pages, and Notion databases set to this level",
   history:
     "Logbook updates, learnings, and decisions no longer in force, and Notion databases set to this level",
   record: "CRM records, and Notion databases set to this level",

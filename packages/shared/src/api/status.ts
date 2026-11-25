@@ -10,6 +10,7 @@ export const SETUP_APPS = [
   "library",
   "crm",
   "notion",
+  "itkb",
   "iam",
   "support-agent",
 ] as const;

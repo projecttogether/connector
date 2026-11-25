@@ -1,7 +1,7 @@
 # User guide
 
 Connector brings together what your organization keeps in its Handbook,
-Logbook, Library, CRM and Notion, for you and for your AI assistant. You see only
+Logbook, Library, CRM, Notion and IT Knowledge Base, for you and for your AI assistant. You see only
 what you may see in each app.
 
 ## Searching
@@ -64,9 +64,9 @@ an admin if a source is missing.
 - **Status**: what needs an admin (failing sources, tokens that expire or
   were revoked but are still sent, a stopped sync), every source's state,
   the directory, and how much agents and bots use Connector. Each app has
-  a setup guide here: Handbook, Logbook, Library, CRM, Notion, IAM and
+  a setup guide here: Handbook, Logbook, Library, CRM, Notion, the IT Knowledge Base, IAM and
   the Support Agent ([Sources](sources.md#setup-guides-and-status)).
-- **Sources**: connect Handbook, Logbook, Library, CRM and Notion, decide who may
+- **Sources**: connect Handbook, Logbook, Library, CRM, Notion and the IT Knowledge Base, decide who may
   use them, check them ([Sources](sources.md)).
 - **People**: admins, blocking, removal.
 - **Directory**: the Keycloak sync, SCIM tokens for IAM, groups.

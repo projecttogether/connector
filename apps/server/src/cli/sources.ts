@@ -23,6 +23,7 @@ const SECRET_LABELS: Record<SourceKind, string> = {
   notion: "integration secret",
   logbook: "webhook secret",
   library: "webhook secret",
+  itkb: "webhook secret",
 };
 
 /** What the Sources page shows at a glance; never a secret. */

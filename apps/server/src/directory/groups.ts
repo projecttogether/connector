@@ -26,7 +26,9 @@ export async function groupsOfUser(db: DbOrTx, userId: string): Promise<GroupSet
   };
 }
 
-const normalize = (group: string) => group.trim().replace(/^\/+|\/+$/g, "");
+/** A group path without leading or trailing slashes; case stays. */
+export const normalizeGroup = (group: string) => group.trim().replace(/^\/+|\/+$/g, "");
+const normalize = normalizeGroup;
 
 /**
  * True when one of `groups` is one of `wanted`, or below it: Keycloak group

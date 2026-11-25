@@ -7,13 +7,14 @@ and the people who may use it. On the server, `cli settings apply sources`
 does the same without a browser
 ([Settings from the command line](deployment.md#settings-from-the-command-line)).
 
-| Kind     | Holds                                                      | How Connector reads it                                                |
-| -------- | ---------------------------------------------------------- | --------------------------------------------------------------------- |
-| Handbook | Policies, guides, playbooks                                | Live, through its API (service token, or the person's linked account) |
-| Logbook  | Decisions, updates, learnings                              | Its webhook; Connector keeps a search index                           |
-| Library  | Studies, reports, articles with source notes               | Its webhook; Connector keeps a search index                           |
-| CRM      | Contacts, organizations, deals, events, meetings, segments | Live, through its API (API key)                                       |
-| Notion   | Pages of the databases an admin chose                      | Live, through its API (integration secret)                            |
+| Kind              | Holds                                                      | How Connector reads it                                                |
+| ----------------- | ---------------------------------------------------------- | --------------------------------------------------------------------- |
+| Handbook          | Policies, guides, playbooks                                | Live, through its API (service token, or the person's linked account) |
+| Logbook           | Decisions, updates, learnings                              | Its webhook; Connector keeps a search index                           |
+| Library           | Studies, reports, articles with source notes               | Its webhook; Connector keeps a search index                           |
+| CRM               | Contacts, organizations, deals, events, meetings, segments | Live, through its API (API key)                                       |
+| Notion            | Pages of the databases an admin chose                      | Live, through its API (integration secret)                            |
+| IT Knowledge Base | Tools, access, devices, security, onboarding, IT policies  | Its webhook after each build; Connector keeps a search index          |
 
 Live sources answer at every request, so nothing is copied and nothing
 gets stale. Webhook sources send each published item and each change;
@@ -46,7 +47,7 @@ only to the people the source is open to.
 Each app has a guide at **Administration → Status**: where the app is, the
 credentials to create there (with a link to the right page of the app),
 who may use the source, and then a test (Handbook, CRM, Notion) or a wait for the
-first delivery (Logbook, Library) that turns green on its own. The guides
+first delivery (Logbook, Library, IT Knowledge Base) that turns green on its own. The guides
 for IAM and the Support Agent create their token, show it once,
 list the exact fields to enter in that app, and wait for its first request.
 
@@ -80,10 +81,10 @@ When sources disagree, the higher level wins. Every result carries its
 level; agents get the order in the MCP instructions.
 
 1. **Purpose and rules**: Handbook pages in the spaces listed as _rule
-   spaces_.
+   spaces_, and IT Knowledge Base pages in its _rule sections_.
 2. **Decisions in force**: Logbook decisions that no newer decision
    replaced; the newest wins.
-3. **Knowledge base**: other Handbook pages.
+3. **Knowledge base**: other Handbook pages and IT Knowledge Base pages.
 4. **Logbook history**: updates, learnings, and decisions that are no longer
    in force.
 5. **Records**: CRM records.
@@ -245,6 +246,58 @@ long list of databases makes searches slower. A database that does not
 answer in time is left out; the source fails only when none answers.
 Connector keeps the databases' tables and property names, never pages, in
 memory for five minutes; any change to the source reads them again.
+
+## IT Knowledge Base
+
+The IT Knowledge Base is a site of Markdown pages whose build makes a
+memory export: every page with its chunks, its status and the Keycloak
+groups that may read it. After each build of its main branch, its CI sends
+the export to Connector's webhook.
+
+1. In the guide **Connect the IT Knowledge Base**, enter the site's address,
+   who may use it (the group that may read the site) and the _rule
+   sections_, and choose **Connect**. Connector generates the webhook secret
+   and shows the URL `<APP_URL>/hooks/<slug>` and the secret once.
+2. In the knowledge base's repository on GitHub, add both as Actions
+   secrets: `CONNECTOR_WEBHOOK_URL` and `CONNECTOR_WEBHOOK_SECRET`.
+3. The next build of the main branch sends every page (run the CI workflow
+   on main again to send now). The guide turns green at the first delivery.
+
+Connector shows each page to whom the site shows it:
+
+- a public page to everyone who may use the source, and to service tokens
+  (bots) when the source is open to them;
+- every other page only to members of one of the page's groups (the site's
+  `allowed_groups`), compared exactly, as the site does: a subgroup does not
+  count. Bots see none of these.
+
+Pages the knowledge base marks as not meant for answers
+(`agent_can_answer: false`) are not kept. Deprecated pages carry the status
+_deprecated_, pages of draft confidence _draft guidance_. Pages in a _rule
+section_ (the page's folder in the knowledge base's repository, `docs/<section>/`; `policies` by default) rank
+with purpose and rules unless deprecated; all others rank as knowledge
+base. The rule sections are read at every search, so a change applies at
+once. The export's German search terms are searched too.
+
+### The webhook
+
+Each delivery is a `POST` of JSON to `<APP_URL>/hooks/<slug>` with the
+headers `itkb-timestamp` (Unix seconds) and `itkb-signature`
+(`sha256=<hex HMAC-SHA256 of "<timestamp>.<body>" with the secret>`), as
+for Logbook and Library. Connector refuses timestamps more than five
+minutes off.
+
+- `page.changed`: `{ "event": "page.changed", "page": <page record of the
+export>, "chunks": [{ "text": … }, …] }`, the page's chunks in order.
+  Connector replaces the page.
+- `export.completed`: `{ "event": "export.completed", "source_version":
+"<commit>", "page_ids": [<every page of the export>] }`, sent after all
+  pages. Connector removes the pages it no longer lists.
+
+The page record has `id`, `title`, `description`, `search_terms`,
+`page_type`, `status`, `visibility`, `allowed_groups`, `last_updated`,
+`route`, `source_path`, `rendered_url` and `agent` (`confidence`,
+`can_answer`, `escalation`); other fields are ignored.
 
 ## Support Agent (a bot that reads)
 

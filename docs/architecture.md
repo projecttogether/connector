@@ -8,7 +8,7 @@ sources.
 
 Connector is the memory layer of the AI Operating System: it connects the
 places where an organization keeps its knowledge (Handbook, Logbook,
-Library, CRM, Notion) to the people and agents who work with it, and enforces who
+Library, CRM, Notion, IT Knowledge Base) to the people and agents who work with it, and enforces who
 may see what. Every kind of information keeps its home in its app:
 Connector asks live sources at every request and keeps only an index of
 what webhook sources send, replaced on every change and deleted on removal.
@@ -36,7 +36,7 @@ what webhook sources send, replaced on every change and deleted on removal.
   tokens may read it, the last check or delivery.
 - **Adapter**: the code of one kind (`apps/server/src/sources/`):
   `check`, `search`, `fetch`, `recent`. Live adapters (Handbook, CRM,
-  Notion) call the app's REST API; webhook adapters (Logbook, Library) read the index.
+  Notion) call the app's REST API; webhook adapters (Logbook, Library, IT Knowledge Base) read the index.
 - **Item**: anything a source returns, with the ID
   `<source slug>:<type>:<id in the app>` (`packages/shared/src/sources.ts`).
 - **Authority**: an item's level in the source order (rules, decision,
@@ -144,6 +144,10 @@ Inside a source:
 - **Library**: `visibility = groups` items match the caller's group names
   and Keycloak group IDs (`index-store.ts`, `visible`); service tokens see
   only `all`.
+- **IT Knowledge Base**: public pages are `all`; every other page carries
+  its groups as `group:<path>` and matches the caller's group paths
+  exactly, as the site does; service tokens see only `all`. Pages not
+  meant for answers are not kept.
 
 Agents carry their person's groups (resolved on every request), so a person
 removed from a group loses the source for their agents too. Blocking,
@@ -182,8 +186,10 @@ request.
 `sources/webhooks.ts`: `POST /hooks/<slug>` checks the HMAC-SHA256 of
 `<timestamp>.<raw body>` against the source's webhook secret in constant
 time, refuses timestamps more than 300 seconds off, then validates the
-payload with zod. Logbook `entry.changed` and Library `note.changed`
-replace the item (`upsertItem`), `note.removed` deletes it. Deliveries are
+payload with zod. Logbook `entry.changed`, Library `note.changed` and IT
+Knowledge Base `page.changed` replace the item (`upsertItem`),
+`note.removed` deletes it, and the IT Knowledge Base's `export.completed`
+deletes the pages it no longer lists (`removeItemsExcept`). Deliveries are
 idempotent; the source's status shows the last delivery or the last
 refused one (`recordDelivery`, source health).
 

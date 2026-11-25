@@ -38,7 +38,7 @@ import { useAdminSources, useCheckSource, useDeleteSource, useUpdateSource, useW
 import { messages } from "./messages";
 import { SourceDialog, updateBody } from "./source-dialog";
 
-const isWebhook = (source: Source) => source.kind === "logbook" || source.kind === "library";
+const isWebhook = (source: Source) => SOURCE_KIND_INFO[source.kind].delivery === "webhook";
 
 function Status({ source }: { source: Source }) {
   const t = useT(messages);
@@ -83,7 +83,9 @@ function WebhookDialog(props: { source: Source | null; onClose: () => void }) {
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{t("webhookTitle", { name: source?.name ?? "" })}</DialogTitle>
-          <DialogDescription>{t("webhookDescription")}</DialogDescription>
+          <DialogDescription>
+            {source?.kind === "itkb" ? t("webhookDescriptionItkb") : t("webhookDescription")}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-1.5">
           <p className="text-sm font-medium">{t("webhookUrl")}</p>

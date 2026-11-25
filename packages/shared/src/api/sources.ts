@@ -107,6 +107,23 @@ export const notionConfigSchema = z.object({
   /** Notion's API: its integration secret goes there. Change only for a proxy. */
   apiUrl: baseUrlSchema.default(NOTION_API_URL),
 });
+/** Sections of the IT Knowledge Base: a page's folder below `docs/` in its repository, e.g. `policies`. */
+const sectionListSchema = z
+  .array(
+    z
+      .string()
+      .trim()
+      .min(1)
+      .max(100)
+      .regex(/^[a-z0-9][a-z0-9-]*$/, "Use the section's folder name, e.g. policies"),
+  )
+  .max(20);
+
+export const itkbConfigSchema = z.object({
+  baseUrl: baseUrlSchema,
+  /** Sections whose pages hold rules staff must follow: they rank with purpose and rules (source order). */
+  ruleSections: sectionListSchema.default(["policies"]),
+});
 export const libraryConfigSchema = z.object({
   baseUrl: baseUrlSchema,
   /**
@@ -171,6 +188,13 @@ export const sourceCreateSchema = z.discriminatedUnion("kind", [
     slug: sourceSlugSchema,
     ...sharedFields,
     config: logbookConfigSchema,
+    secret: webhookSecretSchema.default({}),
+  }),
+  z.object({
+    kind: z.literal("itkb"),
+    slug: sourceSlugSchema,
+    ...sharedFields,
+    config: itkbConfigSchema,
     secret: webhookSecretSchema.default({}),
   }),
   z.object({

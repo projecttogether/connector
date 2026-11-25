@@ -5,6 +5,7 @@ export const messages = defineMessages({
     title_handbook: "Connect Handbook",
     title_crm: "Connect CRM",
     title_notion: "Connect Notion",
+    title_itkb: "Connect the IT Knowledge Base",
     title_logbook: "Connect Logbook",
     title_library: "Connect Library",
     title_iam: "Connect IAM",
@@ -66,6 +67,9 @@ export const messages = defineMessages({
     allowLinkingHint: "Their agents then see their drafts and can propose changes in their name.",
     serviceAccess: "Bots may read it",
     serviceAccessHint: "Service tokens (e.g. the Support Agent) read the content meant for everyone.",
+    ruleSections: "Rule sections",
+    ruleSectionsHint:
+      "Sections whose pages hold rules staff must follow, comma-separated, e.g. policies: their pages rank first, above decisions. A section is a folder of the knowledge base, e.g. docs/policies.",
     teamGroupPrefix: "Team groups",
     teamGroupPrefixHint:
       "Team notes are shown to members of <prefix>/<team name>, e.g. /teams. Members of the Keycloak group a note names always see it.",
@@ -95,6 +99,8 @@ export const messages = defineMessages({
     sendTitle: "Tell {app} where to send",
     sendText: "In {app}, open {link}, enter these two values under Webhook, and save. No restart.",
     sendLink: "Admin → Integrations",
+    sendTextItkb:
+      "In the knowledge base's repository on GitHub, add these two values as Actions secrets: CONNECTOR_WEBHOOK_URL and CONNECTOR_WEBHOOK_SECRET. Its next build of the main branch sends every page.",
     sendEnvironment:
       "{app} up to 0.3.2 has no such page: add them as WEBHOOK_URL and WEBHOOK_SECRET to its environment (for example the .env file next to its compose.yaml) and restart it.",
     fieldWebhookUrl: "URL",
@@ -107,6 +113,8 @@ export const messages = defineMessages({
     waiting: "Waiting for {app}…",
     waitingHint:
       "{app} sends something within a minute after it is published or changed, and everything in its first nightly run (02:30, server time) at the latest.",
+    waitingHintItkb:
+      "The knowledge base sends every page after each build of its main branch. To send now, run its CI workflow on main again.",
     received: "{app} delivered",
     receivedText: "{message} · {items}",
     deliveryFailed: "{app}'s delivery was refused",

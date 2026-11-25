@@ -89,7 +89,7 @@ export function registerTools(server: McpServer, api: ApiClient) {
     {
       title: "Search",
       description:
-        "Searches every connected app the person may use (Handbook, Logbook, Library, CRM, Notion) at once. Returns items with id, title, url, a short text, source, type, authority (level in the source order), date and status. Read an item in full with fetch.",
+        "Searches every connected app the person may use (Handbook, Logbook, Library, CRM, Notion, IT Knowledge Base) at once. Returns items with id, title, url, a short text, source, type, authority (level in the source order), date and status. Read an item in full with fetch.",
       inputSchema: {
         query: z.string().min(1).max(300).describe("Words to search for, or a reference such as LB-12"),
         sources: sourcesArg,
