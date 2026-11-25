@@ -1,0 +1,19 @@
+# Gitleaks (the CI job "Secrets in the history"): its default rules, without
+# the invented values of this repository. Each is an example or test value,
+# never valid where the app is in use (config.ts refuses the examples).
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Example and test values"
+regexes = [
+  # The development ENCRYPTION_KEY (.env.example, config.ts).
+  '''^ZGV2ZWxvcG1lbnQta2V5LWRldmVsb3BtZW50LWtleSE=$''',
+  # The CI job's ENCRYPTION_KEY (.github/workflows/ci.yaml).
+  '''^Y2ktb25seS1ub3QtYS1zZWNyZXQta2V5LTAwMDAwMDA=$''',
+  # The browser tests' ENCRYPTION_KEY (e2e/playwright.config.ts).
+  '''^ZTJlLWtleS1lMmUta2V5LWUyZS1rZXktZTJlLWtleSE=$''',
+  # A Handbook service token and a webhook secret in tests (cli.int.test.ts, admin.test.tsx).
+  '''^kn_svc_wrong-4b7e$''',
+  '''^generated-secret-1234567890$''',
+]

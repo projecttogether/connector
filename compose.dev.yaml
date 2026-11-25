@@ -1,0 +1,44 @@
+# Local development: PostgreSQL 18 and a Keycloak with a development realm.
+#   docker compose -f compose.dev.yaml up -d
+# Keycloak: http://localhost:8106 (admin / admin), realm "connector", test
+# users with the password "connector-dev":
+#   ada@example.org    admin (ADMIN_EMAILS in .env.example), group /staff/it
+#   eddie@example.org  group /staff/it
+#   rita@example.org   groups /staff and /teams/Programs (Library team notes)
+#   gina@example.org   group /guests; refused while ACCESS_GROUPS=/staff
+# The client "connector" has a service account with view-users, for
+# DIRECTORY=keycloak. The production setup is compose.yaml.
+name: connector-dev
+
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: connector
+      POSTGRES_PASSWORD: connector
+      POSTGRES_DB: connector
+    ports:
+      - "127.0.0.1:55452:5432"
+    volumes:
+      - postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U connector -d connector"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.2-3
+    command: ["start-dev", "--import-realm", "--http-port=8080"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      # The image sizes the heap from host RAM (up to 70 %); cap it for local use.
+      JAVA_OPTS_KC_HEAP: "-Xms64m -Xmx512m"
+    ports:
+      - "127.0.0.1:8106:8080"
+    volumes:
+      - ./dev/keycloak:/opt/keycloak/data/import:ro
+
+volumes:
+  postgres:

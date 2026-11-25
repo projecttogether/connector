@@ -1,0 +1,1 @@
+ALTER TABLE "credentials" ADD COLUMN "last_rejected_at" timestamp with time zone;

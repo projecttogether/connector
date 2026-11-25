@@ -1,0 +1,65 @@
+import type { ZodError, z } from "zod";
+
+/**
+ * An error with an HTTP status and a stable code. Services throw these; the
+ * app's error handler turns them into `{ error: { code, message, fields } }`.
+ * Messages are shown to people: keep them short and free of internal details.
+ */
+export class AppError extends Error {
+  constructor(
+    readonly status: 400 | 401 | 403 | 404 | 409 | 413 | 422 | 423 | 429 | 500 | 502 | 503,
+    readonly code: string,
+    message: string,
+    readonly fields?: Record<string, string>,
+    /** More top-level response fields, e.g. the current page of a 409 conflict. */
+    readonly extra?: Record<string, unknown>,
+  ) {
+    super(message);
+    this.name = "AppError";
+  }
+}
+
+export const badRequest = (message: string) => new AppError(400, "bad_request", message);
+export const unauthorized = (message = "Sign in to continue") => new AppError(401, "unauthorized", message);
+export const forbidden = (message = "You may not do this") => new AppError(403, "forbidden", message);
+export const notFound = (message = "Not found") => new AppError(404, "not_found", message);
+export const conflict = (message: string, code = "conflict") => new AppError(409, code, message);
+
+export function validationError(fields: Record<string, string>, message = "Check the highlighted fields") {
+  return new AppError(422, "validation_error", message, fields);
+}
+
+/** Field errors keyed by dotted path, first message per field. */
+export function zodFieldErrors(error: ZodError): Record<string, string> {
+  const fields: Record<string, string> = {};
+  for (const issue of error.issues) {
+    const key = issue.path.join(".") || "_";
+    fields[key] ??= issue.message;
+  }
+  return fields;
+}
+
+/** Validates a value with a shared schema; a failure becomes a 422 with field errors. */
+export function parseWith<T extends z.ZodType>(schema: T, value: unknown): z.infer<T> {
+  const parsed = schema.safeParse(value);
+  if (!parsed.success) throw validationError(zodFieldErrors(parsed.error));
+  return parsed.data;
+}
+
+/**
+ * PostgreSQL errors of a request that ran into another one at the same time:
+ * unique violation (e.g. two creates at one path), deadlock, serialization
+ * failure. Trying again gives the right answer.
+ */
+export const CONCURRENT_CHANGE_CODES = new Set(["23505", "40P01", "40001"]);
+
+/** The SQLSTATE of a database error, also when Drizzle wrapped it (`cause`). */
+export function databaseErrorCode(error: unknown): string | undefined {
+  let current = error;
+  for (let depth = 0; depth < 3 && current instanceof Error; depth += 1) {
+    const code = (current as { code?: unknown }).code;
+    if (typeof code === "string") return code;
+    current = current.cause;
+  }
+  return undefined;
+}
