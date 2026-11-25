@@ -121,7 +121,8 @@ PostgreSQL holds everything (`apps/server/src/db/schema/`).
 
 `sources/service.ts` decides which sources a principal may use
 (`mayUse`): enabled, and for a person no access groups or one of them
-(`directory/groups.ts`, `inAnyGroup`: subgroups count); for a service token
+(`directory/groups.ts`, `inAnyGroup`: subgroups count; for the IT Knowledge
+Base `inAnyGroupExactly`, as its site checks them); for a service token
 `service_access`. Adapters run only through `sources/use.ts`: `useSources`
 and `useSource` check `mayUse` themselves, so `fetch` of a closed source
 answers 404 like an unknown item; admin pages and the worker use
@@ -146,8 +147,9 @@ Inside a source:
   only `all`.
 - **IT Knowledge Base**: public pages are `all`; every other page carries
   its groups as `group:<path>` and matches the caller's group paths
-  exactly, as the site does; service tokens see only `all`. Pages not
-  meant for answers are not kept.
+  exactly, as the site does; service tokens read the pages meant for all
+  of the source's access groups (`serviceAudience`, `@>`). Pages not meant
+  for answers are not kept.
 
 Agents carry their person's groups (resolved on every request), so a person
 removed from a group loses the source for their agents too. Blocking,

@@ -12,8 +12,11 @@ import { indexAdapter, type IndexedItem } from "./index-store";
  *
  * Who sees a page is what the site allows: members of one of the page's
  * `allowed_groups` (Keycloak group paths, exactly as the site checks them),
- * or everyone who may use the source for a public page. Service tokens see
- * only public pages. Pages that may not support answers
+ * or everyone who may use the source for a public page. Service tokens
+ * (bots) read what is meant for everyone the source is open to: public
+ * pages and pages meant for all of its access groups (with the site's staff
+ * group as the one access group, every staff page), never pages for other
+ * groups (operators). Pages that may not support answers
  * (`agent.can_answer: false`) are not kept. Pages in a rule section
  * (`config.ruleSections`, the page's folder below `docs/` in the knowledge
  * base's repository; addresses are flat) rank with purpose and rules,
@@ -126,13 +129,10 @@ export const itkbAdapter = indexAdapter(
       : "knowledge";
   },
   {
-    // The site admits only members of its group itself; the source's access
-    // groups admit their subgroups too. Members of a subgroup alone see the
-    // public pages, whatever other groups they have.
-    groupsCount: (principal, source) => {
-      if (source.accessGroups.length === 0 || principal.kind !== "user") return true;
-      const groups = new Set(principal.groups.map(normalizeGroup));
-      return source.accessGroups.some((group) => groups.has(normalizeGroup(group)));
-    },
+    // Bots read the pages meant for everyone the source is open to: pages
+    // for all of its access groups, never pages only some of them may read.
+    // Its access groups admit only their direct members (`mayUse`), as the
+    // site does, so nobody who may use the source is left out of them.
+    serviceAudience: (source) => source.accessGroups.map((group) => `group:${normalizeGroup(group)}`),
   },
 );

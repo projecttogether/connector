@@ -29,7 +29,8 @@ Items have IDs of the form `<source slug>:<type>:<id in the app>`, e.g.
 
 - **Everyone signed in**, or only members of the groups listed under
   _Access groups_ (Keycloak paths count their subgroups: `/staff` admits
-  `/staff/it`). Groups come from the sign-in, the Keycloak directory and
+  `/staff/it`; the IT Knowledge Base admits only members of a group itself,
+  as its site does). Groups come from the sign-in, the Keycloak directory and
   SCIM ([Identity and access](identity-and-access.md)).
 - **Service tokens** (bots such as the Support Agent) read a source only
   when _Service tokens may read_ is on, and then only content meant for
@@ -265,18 +266,23 @@ the export to Connector's webhook.
 
 Connector shows each page to whom the site shows it:
 
-- a public page to everyone who may use the source, and to service tokens
-  (bots) when the source is open to them;
+- a public page to everyone who may use the source;
 - every other page only to members of one of the page's groups (the site's
   `allowed_groups`), compared exactly, as the site does: a subgroup does not
-  count. Bots see none of these.
+  count;
+- service tokens (bots such as the Support Agent), when the source is open
+  to them, read what is meant for everyone the source is open to: the
+  public pages and the pages meant for all of the source's access groups
+  (with the site's staff group as the one access group, every staff page).
+  In a source open to the staff group, pages for other groups, such as the
+  IT or HR operators' pages, stay with their members; with several access
+  groups, bots read only pages meant for all of them.
 
 Group names count from wherever Connector knows them (sign-in, the Keycloak
 directory, SCIM, groups made here), as for every source: name no group here
-like one of the site's groups unless the same people belong to it. The
-source's access groups admit their subgroups, as for every source, but like
-the site, only members of an access group itself see more than the public
-pages.
+like one of the site's groups unless the same people belong to it. Unlike
+other sources, the access groups admit only their direct members, as the
+site's sign-in does: a subgroup of the staff group does not count.
 
 Pages the knowledge base marks as not meant for answers
 (`agent_can_answer: false`) are not kept. Deprecated pages carry the status
