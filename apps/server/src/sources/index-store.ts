@@ -202,15 +202,16 @@ export function indexAdapter(
     teamPrefix?: (config: Record<string, unknown>) => string | null;
     /** Whether the caller's groups count inside the source; returning `false` limits them to items for everyone. */
     groupsCount?: (principal: Principal, source: SourceRow) => boolean;
+    /** The keys of service tokens in the source; without, they see only items for everyone. */
+    serviceKeys?: (source: SourceRow) => string[];
   } = {},
 ): Adapter {
   const teamPrefix = (config: Record<string, unknown>) => options.teamPrefix?.(config) ?? null;
-  const visibleTo = (context: AdapterContext) =>
-    visible(
-      options.groupsCount && !options.groupsCount(context.principal, context.source)
-        ? []
-        : visibilityKeys(context.principal, teamPrefix(context.config)),
-    );
+  const visibleTo = ({ principal, source, config }: AdapterContext) => {
+    if (principal.kind === "service") return visible(options.serviceKeys?.(source) ?? []);
+    if (options.groupsCount && !options.groupsCount(principal, source)) return visible([]);
+    return visible(visibilityKeys(principal, teamPrefix(config)));
+  };
   const hit = (row: Row, config: Record<string, unknown>, snippet?: string | null): Hit => ({
     type: row.type,
     externalId: row.externalId,

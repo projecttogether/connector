@@ -180,13 +180,18 @@ describe("IT Knowledge Base", () => {
       (await request("GET", "/api/v1/items/itkb:page:workflow.firewall", { userId: subgroup.id })).status,
     ).toBe(404);
 
-    // Bots read only public pages.
+    // Bots read what is meant for everyone the source is open to: staff and public pages, never operator pages.
     const bot = await createAdminToken("service", "Support Agent");
-    const botSearch = await request("POST", "/api/v1/knowledge/search", {
-      token: bot,
-      body: { query: "network", limit: 20 },
-    });
-    expect(botSearch.body.results.map((result: { title: string }) => result.title)).toEqual(["Guest wifi"]);
+    const botTitles = async () =>
+      (
+        await request("POST", "/api/v1/knowledge/search", {
+          token: bot,
+          body: { query: "network", limit: 20 },
+        })
+      ).body.results
+        .map((result: { title: string }) => result.title)
+        .sort();
+    expect(await botTitles()).toEqual(["Guest wifi", "Old wifi policy", "Password policy", "VPN"]);
 
     // Reading a page: its chunks in order, linked to the site.
     const vpn = await request("GET", "/api/v1/items/itkb:page:tool.vpn", { userId: staff.id });
@@ -207,6 +212,13 @@ describe("IT Knowledge Base", () => {
     const after = await request("GET", "/api/v1/search?q=network&limit=50", { userId: staff.id });
     expect(found(after.body)["itkb:page:tool.vpn"]).toEqual(["rules", null]);
     expect(found(after.body)["itkb:page:guideline.passwords"]).toEqual(["knowledge", null]);
+
+    // A source open to everyone signed in has no group of its own: bots read only public pages.
+    await request("PATCH", `/api/v1/admin/sources/${source.id}`, {
+      userId: admin.id,
+      body: { accessGroups: [] },
+    });
+    expect(await botTitles()).toEqual(["Guest wifi"]);
   });
 
   it("drops pages not meant for answers and pages the export no longer lists", async () => {

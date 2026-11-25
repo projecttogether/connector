@@ -146,8 +146,9 @@ Inside a source:
   only `all`.
 - **IT Knowledge Base**: public pages are `all`; every other page carries
   its groups as `group:<path>` and matches the caller's group paths
-  exactly, as the site does; service tokens see only `all`. Pages not
-  meant for answers are not kept.
+  exactly, as the site does; service tokens read as members of the
+  source's access groups (`serviceKeys`). Pages not meant for answers are
+  not kept.
 
 Agents carry their person's groups (resolved on every request), so a person
 removed from a group loses the source for their agents too. Blocking,

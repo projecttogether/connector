@@ -12,8 +12,10 @@ import { indexAdapter, type IndexedItem } from "./index-store";
  *
  * Who sees a page is what the site allows: members of one of the page's
  * `allowed_groups` (Keycloak group paths, exactly as the site checks them),
- * or everyone who may use the source for a public page. Service tokens see
- * only public pages. Pages that may not support answers
+ * or everyone who may use the source for a public page. Service tokens
+ * (bots) read what is meant for everyone the source is open to: public
+ * pages and pages for one of its access groups (the site's staff group),
+ * never pages for other groups (operators). Pages that may not support answers
  * (`agent.can_answer: false`) are not kept. Pages in a rule section
  * (`config.ruleSections`, the page's folder below `docs/` in the knowledge
  * base's repository; addresses are flat) rank with purpose and rules,
@@ -134,5 +136,8 @@ export const itkbAdapter = indexAdapter(
       const groups = new Set(principal.groups.map(normalizeGroup));
       return source.accessGroups.some((group) => groups.has(normalizeGroup(group)));
     },
+    // Bots read as members of the source's access groups: pages meant for
+    // everyone the source is open to, never pages for other groups.
+    serviceKeys: (source) => source.accessGroups.map((group) => `group:${normalizeGroup(group)}`),
   },
 );
