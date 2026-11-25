@@ -271,6 +271,13 @@ Connector shows each page to whom the site shows it:
   `allowed_groups`), compared exactly, as the site does: a subgroup does not
   count. Bots see none of these.
 
+Group names count from wherever Connector knows them (sign-in, the Keycloak
+directory, SCIM, groups made here), as for every source: name no group here
+like one of the site's groups unless the same people belong to it. The
+source's access groups admit their subgroups, as for every source, but like
+the site, only members of an access group itself see more than the public
+pages.
+
 Pages the knowledge base marks as not meant for answers
 (`agent_can_answer: false`) are not kept. Deprecated pages carry the status
 _deprecated_, pages of draft confidence _draft guidance_. Pages in a _rule
@@ -296,8 +303,8 @@ export>, "chunks": [{ "text": … }, …] }`, the page's chunks in order.
 
 The page record has `id`, `title`, `description`, `search_terms`,
 `page_type`, `status`, `visibility`, `allowed_groups`, `last_updated`,
-`route`, `source_path`, `rendered_url` and `agent` (`confidence`,
-`can_answer`, `escalation`); other fields are ignored.
+`source_path`, `rendered_url` and `agent` (`confidence`, `can_answer`,
+`escalation`); other fields are ignored.
 
 ## Support Agent (a bot that reads)
 

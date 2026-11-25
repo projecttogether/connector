@@ -9,7 +9,14 @@ import type { DbOrTx } from "../db/client";
 import { items } from "../db/schema";
 import type { Principal } from "../auth/principal";
 import { normalizeGroup } from "../directory/groups";
-import { SourceError, type Adapter, type FetchedItem, type Hit } from "./types";
+import {
+  SourceError,
+  type Adapter,
+  type AdapterContext,
+  type FetchedItem,
+  type Hit,
+  type SourceRow,
+} from "./types";
 
 /*
  * The index of webhook sources: what Logbook, Library and the IT Knowledge
@@ -164,8 +171,8 @@ export function visibilityKeys(principal: Principal, teamPrefix: string | null =
   return keys;
 }
 
-function visible(principal: Principal, teamPrefix: string | null): SQL {
-  const keys = visibilityKeys(principal, teamPrefix);
+/** Items for everyone, and items for one of the caller's keys. */
+function visible(keys: string[]): SQL {
   if (keys.length === 0) return sql`${items.visibility} = 'all'`;
   const array = sql`array[${sql.join(
     keys.map((key) => sql`${key}`),
@@ -191,9 +198,19 @@ function snippetOf(text: string) {
 export function indexAdapter(
   kind: SourceKind,
   authorityOf: (row: Row, config: Record<string, unknown>) => Authority,
-  options: { teamPrefix?: (config: Record<string, unknown>) => string | null } = {},
+  options: {
+    teamPrefix?: (config: Record<string, unknown>) => string | null;
+    /** Whether the caller's groups count inside the source; returning `false` limits them to items for everyone. */
+    groupsCount?: (principal: Principal, source: SourceRow) => boolean;
+  } = {},
 ): Adapter {
   const teamPrefix = (config: Record<string, unknown>) => options.teamPrefix?.(config) ?? null;
+  const visibleTo = (context: AdapterContext) =>
+    visible(
+      options.groupsCount && !options.groupsCount(context.principal, context.source)
+        ? []
+        : visibilityKeys(context.principal, teamPrefix(context.config)),
+    );
   const hit = (row: Row, config: Record<string, unknown>, snippet?: string | null): Hit => ({
     type: row.type,
     externalId: row.externalId,
@@ -241,7 +258,7 @@ export function indexAdapter(
           and(
             eq(items.sourceId, context.source.id),
             sql`(${items.searchVector} @@ ${q} or upper(coalesce(${items.ref}, '')) = ${ref})`,
-            visible(context.principal, teamPrefix(context.config)),
+            visibleTo(context),
           ),
         )
         .orderBy(desc(score), desc(sql`coalesce(${items.changedAt}, ${items.occurredAt})`))
@@ -258,7 +275,7 @@ export function indexAdapter(
             eq(items.sourceId, context.source.id),
             eq(items.externalId, externalId),
             eq(items.type, type),
-            visible(context.principal, teamPrefix(context.config)),
+            visibleTo(context),
           ),
         );
       if (!row) return null;
@@ -268,13 +285,7 @@ export function indexAdapter(
           ? await context.db
               .select({ ref: items.ref, type: items.type, externalId: items.externalId, title: items.title })
               .from(items)
-              .where(
-                and(
-                  eq(items.sourceId, context.source.id),
-                  inArray(items.ref, refs),
-                  visible(context.principal, teamPrefix(context.config)),
-                ),
-              )
+              .where(and(eq(items.sourceId, context.source.id), inArray(items.ref, refs), visibleTo(context)))
           : [];
       const item: FetchedItem = {
         type: row.type,
@@ -313,7 +324,7 @@ export function indexAdapter(
           and(
             eq(items.sourceId, context.source.id),
             gte(sql`coalesce(${items.changedAt}, ${items.occurredAt}, ${items.updatedAt})`, since),
-            visible(context.principal, teamPrefix(context.config)),
+            visibleTo(context),
           ),
         )
         .orderBy(desc(sql`coalesce(${items.changedAt}, ${items.occurredAt}, ${items.updatedAt})`))

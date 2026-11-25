@@ -168,13 +168,17 @@ describe("IT Knowledge Base", () => {
     expect(
       (await request("GET", "/api/v1/items/itkb:page:workflow.firewall", { userId: staff.id })).status,
     ).toBe(404);
-    // A subgroup of the staff group passes the source's access groups, but pages name exact groups.
-    const subgroup = await createUser({ signInGroups: [`${STAFF}/interns`] });
+    // A subgroup of the staff group passes the source's access groups, but like the site, only
+    // members of the staff group itself see more than public pages, operators included.
+    const subgroup = await createUser({ signInGroups: [`${STAFF}/interns`, OPERATORS] });
     expect(
       (await request("GET", "/api/v1/search?q=network&limit=50", { userId: subgroup.id })).body.results.map(
         (result: { id: string }) => result.id,
       ),
     ).toEqual(["itkb:page:tool.guest_wifi"]);
+    expect(
+      (await request("GET", "/api/v1/items/itkb:page:workflow.firewall", { userId: subgroup.id })).status,
+    ).toBe(404);
 
     // Bots read only public pages.
     const bot = await createAdminToken("service", "Support Agent");

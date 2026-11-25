@@ -32,7 +32,6 @@ const pageSchema = z.object({
   visibility: z.string().max(40),
   allowed_groups: z.array(z.string().min(1).max(200)).max(50).default([]),
   last_updated: nullableText(40),
-  route: z.string().max(500).default(""),
   /** The page's file in the knowledge base's repository, e.g. `docs/policies/passwords.md`. */
   source_path: nullableText(500),
   rendered_url: z.url({ protocol: /^https?$/ }),
@@ -40,7 +39,6 @@ const pageSchema = z.object({
     .object({
       confidence: nullableText(40),
       can_answer: z.boolean().nullable().optional(),
-      can_recommend: z.boolean().nullable().optional(),
       escalation: nullableText(200),
     })
     .nullable()
@@ -118,10 +116,23 @@ export function itkbItem(page: Page, chunks: { text: string }[]): IndexedItem | 
   };
 }
 
-export const itkbAdapter = indexAdapter("itkb", (row, config) => {
-  const ruleSections = itkbConfigSchema.safeParse(config).data?.ruleSections ?? [];
-  const section = row.metadata.section;
-  return typeof section === "string" && ruleSections.includes(section) && row.status !== "deprecated"
-    ? "rules"
-    : "knowledge";
-});
+export const itkbAdapter = indexAdapter(
+  "itkb",
+  (row, config) => {
+    const ruleSections = itkbConfigSchema.safeParse(config).data?.ruleSections ?? [];
+    const section = row.metadata.section;
+    return typeof section === "string" && ruleSections.includes(section) && row.status !== "deprecated"
+      ? "rules"
+      : "knowledge";
+  },
+  {
+    // The site admits only members of its group itself; the source's access
+    // groups admit their subgroups too. Members of a subgroup alone see the
+    // public pages, whatever other groups they have.
+    groupsCount: (principal, source) => {
+      if (source.accessGroups.length === 0 || principal.kind !== "user") return true;
+      const groups = new Set(principal.groups.map(normalizeGroup));
+      return source.accessGroups.some((group) => groups.has(normalizeGroup(group)));
+    },
+  },
+);
