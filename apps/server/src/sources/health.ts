@@ -186,6 +186,16 @@ function judgeSource(row: SourceRow, requests: Requests | undefined): SourceVerd
       },
     };
   }
+  if (kind === "notion" && !has("integrationSecret")) {
+    return {
+      state: "setup",
+      problem: {
+        severity: "error",
+        title: `${name} has no integration secret`,
+        detail: "Create an integration in Notion and add its secret here; until then Notion is not searched.",
+      },
+    };
+  }
   if (kind === "handbook" && !has("serviceToken")) {
     const linking = row.config.allowLinking !== false;
     return {

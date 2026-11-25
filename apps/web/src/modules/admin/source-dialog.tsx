@@ -1,12 +1,18 @@
 import { useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import {
   CRM_RECORD_TYPES,
+  NOTION_APP_URL,
   type CrmRecordType,
   type Source,
   type SourceCreate,
   type SourceUpdate,
 } from "@connector/shared/api/sources";
-import { SOURCE_KIND_INFO, type SourceKind } from "@connector/shared/sources";
+import {
+  NOTION_AUTHORITIES,
+  SOURCE_KIND_INFO,
+  type NotionAuthority,
+  type SourceKind,
+} from "@connector/shared/sources";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -28,6 +34,7 @@ import { useT } from "@/i18n";
 import { common } from "@/i18n/common";
 import { ApiError, errorMessage } from "@/lib/api";
 import { messages } from "./messages";
+import { emptyNotionDatabase, NotionDatabasesField, type NotionDatabaseRow } from "./notion-databases";
 
 /** The form's values; the request body is built per kind (`createBody`, `updateBody`). */
 export type SourceForm = {
@@ -46,6 +53,10 @@ export type SourceForm = {
   types: CrmRecordType[];
   teamGroupPrefix: string;
   webhookSecret: string;
+  integrationSecret: string;
+  databases: NotionDatabaseRow[];
+  /** Notion's API as stored (set only from the command line, e.g. a proxy); kept as it is. */
+  apiUrl: string;
 };
 
 const DEFAULT_TYPES: CrmRecordType[] = ["contact", "organization", "deal", "event", "meeting"];
@@ -59,7 +70,7 @@ export function emptyForm(kind: SourceKind = "handbook"): SourceForm {
     enabled: true,
     accessGroups: "",
     serviceAccess: false,
-    baseUrl: "",
+    baseUrl: kind === "notion" ? NOTION_APP_URL : "",
     serviceToken: "",
     ruleSpaces: "",
     allowLinking: true,
@@ -67,7 +78,36 @@ export function emptyForm(kind: SourceKind = "handbook"): SourceForm {
     types: DEFAULT_TYPES,
     teamGroupPrefix: "",
     webhookSecret: "",
+    integrationSecret: "",
+    databases: [emptyNotionDatabase()],
+    apiUrl: "",
   };
+}
+
+const isNotionAuthority = (value: unknown): value is NotionAuthority =>
+  (NOTION_AUTHORITIES as readonly unknown[]).includes(value);
+
+/** The stored databases of a Notion source; one empty row when there are none. */
+function databasesOf(value: unknown): NotionDatabaseRow[] {
+  const rows = Array.isArray(value)
+    ? value.flatMap((database: unknown) =>
+        typeof database === "object" &&
+        database !== null &&
+        "id" in database &&
+        typeof database.id === "string"
+          ? [
+              {
+                id: database.id,
+                authority:
+                  "authority" in database && isNotionAuthority(database.authority)
+                    ? database.authority
+                    : ("knowledge" as const),
+              },
+            ]
+          : [],
+      )
+    : [];
+  return rows.length > 0 ? rows : [emptyNotionDatabase()];
 }
 
 const list = (value: string) =>
@@ -94,6 +134,8 @@ export function formOf(source: Source): SourceForm {
     allowLinking: config.allowLinking !== false,
     types: Array.isArray(config.types) ? (config.types as CrmRecordType[]) : DEFAULT_TYPES,
     teamGroupPrefix: text(config.teamGroupPrefix),
+    databases: databasesOf(config.databases),
+    apiUrl: text(config.apiUrl),
   };
 }
 
@@ -121,6 +163,15 @@ export function configOf(form: SourceForm): Record<string, unknown> {
       return { baseUrl, teamGroupPrefix: form.teamGroupPrefix.trim() || null };
     case "logbook":
       return { baseUrl };
+    case "notion":
+      return {
+        baseUrl,
+        databases: form.databases.map((database) => ({
+          id: database.id.trim(),
+          authority: database.authority,
+        })),
+        ...(form.apiUrl ? { apiUrl: form.apiUrl } : {}),
+      };
   }
 }
 
@@ -131,6 +182,8 @@ function secretOf(form: SourceForm): Record<string, string> {
       return pick("serviceToken", form.serviceToken);
     case "crm":
       return pick("apiKey", form.apiKey);
+    case "notion":
+      return pick("integrationSecret", form.integrationSecret);
     case "logbook":
     case "library":
       return pick("webhookSecret", form.webhookSecret);
@@ -278,8 +331,8 @@ export function SourceDialog(props: {
           </Field>
           <TextField
             id="source-url"
-            label={t("baseUrl")}
-            hint={t("baseUrlHint")}
+            label={form.kind === "notion" ? t("notionBaseUrl") : t("baseUrl")}
+            hint={form.kind === "notion" ? t("notionBaseUrlHint") : t("baseUrlHint")}
             type="url"
             value={form.baseUrl}
             required
@@ -349,6 +402,24 @@ export function SourceDialog(props: {
                   <p className="text-destructive text-sm">{fields["config.types"]}</p>
                 ) : null}
               </fieldset>
+            </>
+          ) : null}
+          {form.kind === "notion" ? (
+            <>
+              <TextField
+                id="source-integration-secret"
+                label={t("integrationSecret")}
+                hint={hint("integrationSecret", t("integrationSecretHint"))}
+                secret
+                value={form.integrationSecret}
+                error={fields["secret.integrationSecret"]}
+                onChange={(value) => set("integrationSecret", value)}
+              />
+              <NotionDatabasesField
+                value={form.databases}
+                fields={fields}
+                onChange={(value) => set("databases", value)}
+              />
             </>
           ) : null}
           {form.kind === "library" ? (

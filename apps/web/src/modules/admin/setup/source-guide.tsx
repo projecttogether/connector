@@ -26,6 +26,7 @@ import {
   useWebhookSecret,
 } from "../api";
 import { messages as adminMessages } from "../messages";
+import { NotionDatabasesField } from "../notion-databases";
 import { createBody, emptyForm, formOf, slugFrom, updateBody, type SourceForm } from "../source-dialog";
 import { messages } from "./messages";
 import { AppLink, baseUrlOf, CopyRow, GuideStep, Outcome, withLink } from "./steps";
@@ -35,7 +36,11 @@ const APP_NAMES: Record<SourceKind, string> = {
   crm: "CRM",
   logbook: "Logbook",
   library: "Library",
+  notion: "Notion",
 };
+
+/** Where Notion's integrations are made. */
+const NOTION_INTEGRATIONS_URL = "https://www.notion.so/profile/integrations";
 
 const isWebhook = (kind: SourceKind) => kind === "logbook" || kind === "library";
 
@@ -50,8 +55,8 @@ function freeName(kind: SourceKind, taken: string[]): { name: string; slug: stri
 
 /**
  * The setup guide of a source app: where it is, its credentials (Handbook,
- * CRM) or its webhook (Logbook, Library), who may use it, and a test or a
- * wait for the first delivery. With `sourceId`, it continues an existing
+ * CRM, Notion and its databases) or its webhook (Logbook, Library), who may
+ * use it, and a test or a wait for the first delivery. With `sourceId`, it continues an existing
  * source (e.g. from a problem on the status page).
  */
 export function SourceGuide(props: { kind: SourceKind; sourceId?: string; onCreated: (id: string) => void }) {
@@ -193,7 +198,13 @@ function GuideBody(props: {
         await update.mutateAsync({ id, update: updateBody(form) });
       }
       // Secrets are sent once; blank keeps them from now on.
-      setForm((current) => ({ ...current, serviceToken: "", apiKey: "", webhookSecret: "" }));
+      setForm((current) => ({
+        ...current,
+        serviceToken: "",
+        apiKey: "",
+        webhookSecret: "",
+        integrationSecret: "",
+      }));
       return id;
     } catch (failure) {
       setError(failure);
@@ -256,7 +267,7 @@ function GuideBody(props: {
     <GuideStep
       number={next()}
       title={t("whereTitle", { app })}
-      description={t("whereDescription")}
+      description={kind === "notion" ? t("whereDescriptionNotion") : t("whereDescription")}
       done={Boolean(source)}
     >
       <TextField
@@ -264,7 +275,7 @@ function GuideBody(props: {
         label={t("address")}
         type="url"
         value={form.baseUrl}
-        placeholder={`https://${kind}.example.org`}
+        placeholder={kind === "notion" ? "https://www.notion.so/example-org" : `https://${kind}.example.org`}
         error={fields["config.baseUrl"]}
         onChange={(value) => set("baseUrl", value)}
       />
@@ -373,6 +384,40 @@ function GuideBody(props: {
           ) : null}
         </fieldset>
       </GuideStep>
+    ) : kind === "notion" ? (
+      <>
+        <GuideStep number={next()} title={t("notionIntegrationTitle")} done={connected}>
+          <p className="text-sm">
+            {withLink(
+              t("notionIntegrationText"),
+              <AppLink href={NOTION_INTEGRATIONS_URL}>{t("notionIntegrationLink")}</AppLink>,
+            )}
+          </p>
+          <p className="text-muted-foreground text-sm">{t("notionIntegrationSees")}</p>
+          <TextField
+            id="setup-integration-secret"
+            label={t("integrationSecret")}
+            secret
+            value={form.integrationSecret}
+            hint={storedHint("integrationSecret")}
+            error={fields["secret.integrationSecret"]}
+            onChange={(value) => set("integrationSecret", value)}
+          />
+        </GuideStep>
+        <GuideStep
+          number={next()}
+          title={t("notionDatabasesTitle")}
+          description={t("notionDatabasesDescription")}
+          done={connected}
+        >
+          <NotionDatabasesField
+            value={form.databases}
+            fields={fields}
+            hint={t("notionDatabasesHint")}
+            onChange={(value) => set("databases", value)}
+          />
+        </GuideStep>
+      </>
     ) : null;
 
   const accessStep = (

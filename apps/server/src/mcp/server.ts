@@ -3,7 +3,7 @@ import { config } from "../config";
 import type { ApiClient } from "./client";
 import { registerTools } from "./tools";
 
-export const INSTRUCTIONS = `This server connects you to an organization's own apps: its knowledge base (Handbook), its logbook of decisions, updates and learnings (Logbook), its library of studies and reports (Library) and its records of contacts and partners (CRM). You see only what the person you work for may see.
+export const INSTRUCTIONS = `This server connects you to an organization's own apps: its knowledge base (Handbook), its logbook of decisions, updates and learnings (Logbook), its library of studies and reports (Library), its records of contacts and partners (CRM) and chosen Notion databases. You see only what the person you work for may see.
 
 Finding: start with get_context for a question or task (everything on a topic, ordered by the source order), or search for a quick lookup; read whole items with fetch. list_sources shows the connected apps. recent_changes shows what changed lately. find_people looks up colleagues.
 
@@ -14,6 +14,7 @@ Source order: when sources disagree, the higher one wins:
 4. Logbook history (updates, learnings, replaced decisions)
 5. Records (CRM)
 6. Library notes (summaries of outside sources)
+Each Notion database sits at one of the levels 3 to 6, as its authority says.
 If a newer decision contradicts a knowledge base page, name both, follow the decision, and suggest updating the page. Purpose and rules stand above decisions. Never rely on a decision that is "superseded by" another.
 
 Cite: link every claim to its item's url. Say when something is missing or a source did not answer; do not guess.

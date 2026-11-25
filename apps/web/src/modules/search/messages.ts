@@ -11,7 +11,7 @@ export const messages = defineMessages({
     allSources: "All sources",
     start: "Search all your apps",
     startHint:
-      "Handbook pages, Logbook decisions, Library notes and CRM records, ordered by the source order.",
+      "Handbook pages, Logbook decisions, Library notes, CRM records and Notion pages, ordered by the source order.",
     noResults: "Nothing found",
     noResultsHint: "Try other words, or check that the sources answered.",
     results: "{count} results",

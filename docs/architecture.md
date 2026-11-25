@@ -8,7 +8,7 @@ sources.
 
 Connector is the memory layer of the AI Operating System: it connects the
 places where an organization keeps its knowledge (Handbook, Logbook,
-Library, CRM) to the people and agents who work with it, and enforces who
+Library, CRM, Notion) to the people and agents who work with it, and enforces who
 may see what. Every kind of information keeps its home in its app:
 Connector asks live sources at every request and keeps only an index of
 what webhook sources send, replaced on every change and deleted on removal.
@@ -35,8 +35,8 @@ what webhook sources send, replaced on every change and deleted on removal.
   (`config.baseUrl`), encrypted credentials, access groups, whether service
   tokens may read it, the last check or delivery.
 - **Adapter**: the code of one kind (`apps/server/src/sources/`):
-  `check`, `search`, `fetch`, `recent`. Live adapters (Handbook, CRM) call
-  the app's REST API; webhook adapters (Logbook, Library) read the index.
+  `check`, `search`, `fetch`, `recent`. Live adapters (Handbook, CRM,
+  Notion) call the app's REST API; webhook adapters (Logbook, Library) read the index.
 - **Item**: anything a source returns, with the ID
   `<source slug>:<type>:<id in the app>` (`packages/shared/src/sources.ts`).
 - **Authority**: an item's level in the source order (rules, decision,
@@ -137,6 +137,9 @@ Inside a source:
   drafts.
 - **CRM**: the API key's sharing decides, Connector's access groups
   decide who sees the key's results.
+- **Notion**: only pages of the databases the source names, whatever else
+  the integration sees (`notion.ts`, `databaseOf`); Connector's access
+  groups decide who sees them.
 - **Logbook**: everyone with access reads every entry; drafts never arrive.
 - **Library**: `visibility = groups` items match the caller's group names
   and Keycloak group IDs (`index-store.ts`, `visible`); service tokens see
@@ -161,7 +164,11 @@ request.
   dated through `fetch`; grouped by authority; notes for decisions newer
   than pages, replaced decisions, and sources that did not answer.
 - **Recent**: each adapter's changes since a date (Handbook `/recent`, the
-  index's `changed_at`), newest first. The CRM has none.
+  index's `changed_at`, Notion's last edit), newest first. The CRM has none.
+- **Notion** (`sources/notion.ts`): each named database's tables (data
+  sources) are asked for pages whose title or text properties contain every
+  search word; their IDs and property IDs are kept in memory for five
+  minutes, keyed by the source's `updated_at`.
 - **Index search** (`index-store.ts`): `websearch_to_tsquery` in each
   `SEARCH_LANGUAGES` configuration plus `simple`, ranked with `ts_rank`; an
   exact reference (`LB-12`) ranks first; snippets from `ts_headline` with

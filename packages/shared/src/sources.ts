@@ -9,7 +9,7 @@ import { z } from "zod";
  * - webhook: the app sends its content; Connector keeps a search index of it
  *   and drops what the app removes.
  */
-export const SOURCE_KINDS = ["handbook", "logbook", "library", "crm"] as const;
+export const SOURCE_KINDS = ["handbook", "logbook", "library", "crm", "notion"] as const;
 export const sourceKindSchema = z.enum(SOURCE_KINDS);
 export type SourceKind = z.infer<typeof sourceKindSchema>;
 
@@ -55,6 +55,13 @@ export const SOURCE_KIND_INFO: Record<SourceKind, SourceKindInfo> = {
     block: "Records",
     types: ["contact", "organization", "deal", "event", "meeting", "segment"],
   },
+  notion: {
+    label: "Notion",
+    holds: "Pages of the Notion databases an admin chose: wikis, projects, meeting notes, lists",
+    delivery: "live",
+    block: "Knowledge base",
+    types: ["page"],
+  },
 };
 
 /**
@@ -77,11 +84,21 @@ export const AUTHORITY_LABELS: Record<Authority, string> = {
 export const AUTHORITY_DESCRIPTIONS: Record<Authority, string> = {
   rules: "Handbook pages in the spaces that hold the purpose and the rules",
   decision: "Logbook decisions that are in force; the newest wins",
-  knowledge: "Handbook pages",
-  history: "Logbook updates, learnings, and decisions no longer in force",
-  record: "CRM records",
-  library: "Library notes about outside sources",
+  knowledge: "Handbook pages, and Notion databases set to this level",
+  history:
+    "Logbook updates, learnings, and decisions no longer in force, and Notion databases set to this level",
+  record: "CRM records, and Notion databases set to this level",
+  library: "Library notes about outside sources, and Notion databases set to this level",
 };
+
+/** The levels a Notion database can have; rules and decisions come only from Handbook and Logbook. */
+export const NOTION_AUTHORITIES = [
+  "knowledge",
+  "history",
+  "record",
+  "library",
+] as const satisfies readonly Authority[];
+export type NotionAuthority = (typeof NOTION_AUTHORITIES)[number];
 
 /** Lower is stronger. */
 export function authorityRank(authority: Authority): number {

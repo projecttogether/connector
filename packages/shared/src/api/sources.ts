@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { idSchema, nullableText } from "./common";
-import { sourceKindSchema, sourceSlugSchema } from "../sources";
+import { NOTION_AUTHORITIES, sourceKindSchema, sourceSlugSchema } from "../sources";
 
 const baseUrlSchema = z
   .url({ protocol: /^https?$/, message: "Enter the app's address, e.g. https://handbook.example.org" })
@@ -27,6 +27,55 @@ export const CRM_RECORD_TYPES = ["contact", "organization", "deal", "event", "me
 export const crmRecordTypeSchema = z.enum(CRM_RECORD_TYPES);
 export type CrmRecordType = z.infer<typeof crmRecordTypeSchema>;
 
+/** Notion's API; a Notion source may name another (a proxy). */
+export const NOTION_API_URL = "https://api.notion.com";
+
+/** Where people open Notion when a source names no workspace address. */
+export const NOTION_APP_URL = "https://www.notion.so";
+
+const UUID = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
+
+/**
+ * A Notion ID from a link or the ID itself, as a lowercase UUID with
+ * hyphens: `https://www.notion.so/<workspace>/Wiki-1a2b…?v=…`, `1a2b…` and
+ * `1a2b3c4d-…` give the same. Null when there is none. A link's last path
+ * segment counts; its view (`?v=`) does not.
+ */
+export function notionIdOf(value: string): string | null {
+  let text = value.trim();
+  if (/^https?:\/\//i.test(text)) {
+    try {
+      text = new URL(text).pathname.split("/").filter(Boolean).at(-1) ?? "";
+    } catch {
+      return null;
+    }
+  }
+  const hex = UUID.test(text) ? text.replaceAll("-", "") : /(?:^|-)([0-9a-f]{32})$/i.exec(text)?.[1];
+  if (!hex) return null;
+  const id = hex.toLowerCase();
+  return `${id.slice(0, 8)}-${id.slice(8, 12)}-${id.slice(12, 16)}-${id.slice(16, 20)}-${id.slice(20)}`;
+}
+
+const notionIdSchema = z
+  .string()
+  .trim()
+  .max(500)
+  .transform((value, context) => {
+    const id = notionIdOf(value);
+    if (!id) context.addIssue({ code: "custom", message: "Paste the database's link or ID" });
+    return id ?? "";
+  });
+
+/** A Notion database Connector searches, and its level in the source order. */
+export const notionDatabaseSchema = z.object({
+  id: notionIdSchema,
+  authority: z.enum(NOTION_AUTHORITIES).default("knowledge"),
+});
+export type NotionDatabase = z.infer<typeof notionDatabaseSchema>;
+
+/** Databases of one Notion source; more mean more requests to Notion on every search. */
+export const MAX_NOTION_DATABASES = 10;
+
 /** Settings of each kind that are not secret. */
 export const handbookConfigSchema = z.object({
   baseUrl: baseUrlSchema,
@@ -42,6 +91,21 @@ export const crmConfigSchema = z.object({
 });
 export const logbookConfigSchema = z.object({
   baseUrl: baseUrlSchema,
+});
+export const notionConfigSchema = z.object({
+  /** The workspace address people open, e.g. https://www.notion.so/example-org; results link to their pages. */
+  baseUrl: baseUrlSchema.default(NOTION_APP_URL),
+  /** The databases searched: pages in other databases or outside one are never shown. */
+  databases: z
+    .array(notionDatabaseSchema)
+    .min(1, "Add a database")
+    .max(MAX_NOTION_DATABASES, `Add at most ${MAX_NOTION_DATABASES} databases`)
+    .refine(
+      (databases) => new Set(databases.map((database) => database.id)).size === databases.length,
+      "Add each database once",
+    ),
+  /** Notion's API: its integration secret goes there. Change only for a proxy. */
+  apiUrl: baseUrlSchema.default(NOTION_API_URL),
 });
 export const libraryConfigSchema = z.object({
   baseUrl: baseUrlSchema,
@@ -64,6 +128,8 @@ const tokenSchema = z
 /** Secrets of each kind; stored encrypted, never shown again (blank keeps the stored one). */
 export const handbookSecretSchema = z.object({ serviceToken: tokenSchema.optional() });
 export const crmSecretSchema = z.object({ apiKey: tokenSchema.optional() });
+/** The internal integration secret of a Notion integration (Notion's integration settings). */
+export const notionSecretSchema = z.object({ integrationSecret: tokenSchema.optional() });
 export const webhookSecretSchema = z.object({
   webhookSecret: z.string().trim().min(16, "Use at least 16 characters").max(300).optional(),
 });
@@ -92,6 +158,13 @@ export const sourceCreateSchema = z.discriminatedUnion("kind", [
     ...sharedFields,
     config: crmConfigSchema,
     secret: crmSecretSchema.default({}),
+  }),
+  z.object({
+    kind: z.literal("notion"),
+    slug: sourceSlugSchema,
+    ...sharedFields,
+    config: notionConfigSchema,
+    secret: notionSecretSchema.default({}),
   }),
   z.object({
     kind: z.literal("logbook"),

@@ -121,10 +121,10 @@ const schema = z
      * Word forms ("laptops" finds "laptop") follow them; exact words always match.
      */
     SEARCH_LANGUAGES: withDefault(z.string(), "english"),
-    /** How long a search waits for a live source (Handbook, CRM), in seconds. */
+    /** How long a search waits for a live source (Handbook, CRM, Notion), in seconds. */
     SOURCE_TIMEOUT_SECONDS: withDefault(z.coerce.number().int().min(1).max(60), 8),
     /**
-     * The worker checks live sources (Handbook, CRM) every this many minutes,
+     * The worker checks live sources (Handbook, CRM, Notion) every this many minutes,
      * so the status page notices a refused token or an app that is down.
      * 0: only admins check.
      */

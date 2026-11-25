@@ -4,6 +4,7 @@ export const messages = defineMessages({
   en: {
     title_handbook: "Connect Handbook",
     title_crm: "Connect CRM",
+    title_notion: "Connect Notion",
     title_logbook: "Connect Logbook",
     title_library: "Connect Library",
     title_iam: "Connect IAM",
@@ -17,6 +18,8 @@ export const messages = defineMessages({
     // Sources: where the app is.
     whereTitle: "Where is {app}?",
     whereDescription: "The address people open in their browser. Connector links every result there.",
+    whereDescriptionNotion:
+      "Your workspace's address, where people open Notion. Results link to their pages.",
     address: "Address",
     moreOptions: "Name and short name",
     name: "Name",
@@ -39,6 +42,18 @@ export const messages = defineMessages({
     crmKeySees: "The key sees the records that are shared with it or with the whole organization.",
     apiKey: "API key",
     types: "Record types to search",
+    notionIntegrationTitle: "Create an integration in Notion",
+    notionIntegrationText:
+      "As a workspace owner, open {link} and choose New integration. Name it “Connector”, pick your workspace and the type Internal, and save. Under Capabilities, keep only Read content (add Read user information without email addresses to show people's names), then copy the Internal integration secret.",
+    notionIntegrationLink: "Notion's integrations",
+    notionIntegrationSees:
+      "The integration reads only what is shared with it, and Connector shows only pages of the databases you choose next.",
+    integrationSecret: "Integration secret",
+    notionDatabasesTitle: "Choose the databases",
+    notionDatabasesDescription:
+      "Share each database with the integration: in the integration's Access tab choose Edit access, or in the database's ••• menu choose Connections and add Connector.",
+    notionDatabasesHint:
+      "Paste each database's link (••• → Copy link) and choose its level in the source order: wikis are usually Knowledge base, meeting notes Logbook history, lists of partners Records.",
     stored: "Stored ({hint}); leave blank to keep it.",
 
     // Access.

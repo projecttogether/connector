@@ -26,6 +26,9 @@ const PUBLIC_HOSTS = new Set([
   "login.microsoftonline.com",
   // An AI app that connects as an MCP client, in tests.
   "claude.ai",
+  // Notion, a source kind: its API, and where its integrations and pages are.
+  "api.notion.com",
+  "www.notion.so",
 ]);
 const LOCAL_ADDRESSES = new Set(["127.0.0.1", "0.0.0.0"]);
 /**

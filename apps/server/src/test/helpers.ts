@@ -44,7 +44,7 @@ export async function createUser(
 
 /** A source, stored as an admin would connect it. */
 export async function createSource(input: {
-  kind: "handbook" | "logbook" | "library" | "crm";
+  kind: "handbook" | "logbook" | "library" | "crm" | "notion";
   slug?: string;
   name?: string;
   config: Record<string, unknown>;

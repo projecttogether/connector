@@ -28,6 +28,8 @@ export async function sourceFetch(
     app: string;
     method?: "GET" | "POST" | "PUT" | "DELETE";
     token?: string | null;
+    /** Headers the app needs, e.g. Notion's API version. */
+    headers?: Record<string, string>;
     /** A JSON body, or a form (`application/x-www-form-urlencoded`). */
     json?: unknown;
     form?: Record<string, string>;
@@ -38,6 +40,7 @@ export async function sourceFetch(
     response = await fetch(url, {
       method: options.method ?? (options.json === undefined && !options.form ? "GET" : "POST"),
       headers: {
+        ...options.headers,
         accept: "application/json",
         "user-agent": USER_AGENT,
         ...(options.token ? { authorization: `Bearer ${options.token}` } : {}),
@@ -82,6 +85,7 @@ export async function sourceRequest<T extends z.ZodType>(
     schema: T;
     method?: "GET" | "POST" | "PUT" | "DELETE";
     body?: unknown;
+    headers?: Record<string, string>;
     /** What to call the app in messages, e.g. "Handbook". */
     app: string;
   },
@@ -91,6 +95,7 @@ export async function sourceRequest<T extends z.ZodType>(
     app: options.app,
     method: options.method ?? "GET",
     token: options.token,
+    headers: options.headers,
     json: options.body,
   });
   if (!answer.ok) {
@@ -100,6 +105,7 @@ export async function sourceRequest<T extends z.ZodType>(
     if (answer.status === 401) throw fail("refused", `${options.app} refused the credentials`, quoted);
     if (answer.status === 403) throw fail("refused", `${options.app} does not allow this`, quoted);
     if (answer.status === 404) throw fail("not_found", `${options.app} has no such item`);
+    if (answer.status === 429) throw fail("failed", `${options.app} limits requests; try again shortly`);
     throw fail(
       answer.status === 422 ? "rejected" : "failed",
       `${options.app} answered HTTP ${answer.status}`,
@@ -152,11 +158,19 @@ function fetchErrorCode(error: unknown): string {
   return typeof cause?.code === "string" ? cause.code : "connection failed";
 }
 
-/** The `{ error: { message } }` of a connected app, shortened, and never with the token it got. */
+/**
+ * The `{ error: { message } }` of a connected app (or Notion's
+ * `{ object: "error", message }`), shortened, and never with the token it got.
+ */
 function errorMessage(data: unknown, token: string | null): string | null {
-  const error = (data as { error?: unknown } | null)?.error;
+  const body = data as { error?: unknown; object?: unknown; message?: unknown } | null;
+  const error = body?.error;
   const message =
-    typeof error === "object" && error !== null ? (error as { message?: unknown }).message : undefined;
+    typeof error === "object" && error !== null
+      ? (error as { message?: unknown }).message
+      : body?.object === "error"
+        ? body.message
+        : undefined;
   if (typeof message !== "string") return null;
   return (token ? message.replaceAll(token, "…") : message).slice(0, 200);
 }

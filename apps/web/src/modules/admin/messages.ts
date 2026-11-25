@@ -64,7 +64,7 @@ export const messages = defineMessages({
       "The organization's apps that Connector searches. Each stays the home of its content; Connector checks who may see what before it returns anything.",
     newSource: "Connect a source",
     noSources: "No sources yet",
-    noSourcesHint: "Connect Handbook, Logbook, Library or the CRM to start.",
+    noSourcesHint: "Connect Handbook, Logbook, Library, the CRM or Notion to start.",
     colSource: "Source",
     colAccess: "Who may use it",
     colStatus: "Status",
@@ -117,6 +117,18 @@ export const messages = defineMessages({
     teamGroupPrefix: "Team groups",
     teamGroupPrefixHint:
       "Team notes are shown to members of <prefix>/<team name>, e.g. /teams. Members of the Keycloak group the note names always see them.",
+    notionBaseUrl: "Address of the workspace",
+    notionBaseUrlHint: "Where people open Notion, e.g. https://www.notion.so/example-org.",
+    integrationSecret: "Integration secret",
+    integrationSecretHint:
+      "From Notion: the internal integration secret of the integration for Connector. It reads what is shared with the integration.",
+    notionDatabases: "Databases",
+    notionDatabasesHint:
+      "Each database's link (Copy link) or ID, and its level in the source order. Connector shows only pages of these databases.",
+    notionDatabaseLink: "Link of database {number}",
+    notionDatabaseLevel: "Level of database {number}",
+    notionDatabaseRemove: "Remove database {number}",
+    notionDatabaseAdd: "Add database",
     webhookSecret: "Webhook secret",
     webhookSecretHint: "Optional: paste the app's signing secret, or generate one after saving.",
     accessGroups: "Groups",
