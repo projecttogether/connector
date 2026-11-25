@@ -53,9 +53,10 @@ services:
     command: ["web"]
     restart: unless-stopped
     # A stop (an upgrade) lets the requests in progress finish first. The
-    # longest, an agent's Handbook proposal, takes up to 25 seconds with the
-    # default SOURCE_TIMEOUT_SECONDS; Docker's default of 10 would cut it off.
-    stop_grace_period: 30s
+    # longest, an agent's Handbook proposal, takes 3 × SOURCE_TIMEOUT_SECONDS
+    # + 1 s: 25 s by default, 181 s at the highest setting (60). A stop waits
+    # only while requests run; Docker's default of 10 s would cut them off.
+    stop_grace_period: 190s
     depends_on:
       migrate:
         condition: service_completed_successfully
