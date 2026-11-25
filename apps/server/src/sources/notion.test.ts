@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { snippetOf, termsOf, textFilter, valueText } from "./notion";
+import { plainMarkdown, snippetOf, termsOf, textFilter, valueText } from "./notion";
 
 const text = (value: string) => [{ plain_text: value }];
 
@@ -94,5 +94,50 @@ describe("Notion properties as text", () => {
         [],
       ),
     ).toBe("Team: Ops");
+  });
+});
+
+describe("Notion's Markdown as plain Markdown", () => {
+  it("keeps the text of callouts, toggles, columns and styled tables, and links pages", () => {
+    const markdown = [
+      '<callout icon="💡" color="yellow_bg">',
+      "Book trains early.",
+      "",
+      'Ask <mention url="user://1" /> or see <mention url="https://www.notion.so/abc">Budget</mention>.',
+      "</callout>",
+      "<toggle>",
+      "Who pays?",
+      "",
+      'The <b>team</b> pays, from <date start="2026-01-01" end="2026-12-31" />.',
+      "</toggle>",
+      '<columns><column ratio="50">Left</column><column>Right</column></columns>',
+      '<table header-row="true"><tr><td>Rail</td><td>Yes</td></tr></table>',
+      '<page url="https://www.notion.so/def">Travel FAQ</page>',
+      '<image source="https://example.org/map.png">Map</image>',
+      "Literal \\<toggle> and <https://example.org> stay; so does `<b>code</b>`.",
+      "```html",
+      "<div>kept</div>",
+      "```",
+    ].join("\n");
+    const plain = plainMarkdown(markdown);
+    for (const kept of [
+      "Book trains early.",
+      "Ask  or see [Budget](https://www.notion.so/abc).",
+      "Who pays?",
+      "The team pays, from 2026-01-01 – 2026-12-31.",
+      "Left",
+      "Right",
+      "Rail",
+      "Yes",
+      "[Travel FAQ](https://www.notion.so/def)",
+      "![Map](https://example.org/map.png)",
+      "Literal \\<toggle> and <https://example.org> stay; so does `<b>code</b>`.",
+      "<div>kept</div>",
+    ]) {
+      expect(plain).toContain(kept);
+    }
+    expect(plain).not.toMatch(
+      /(?<!\\)<\/?(callout|toggle|columns|column|table|tr|td|date|page|image|mention)\b/,
+    );
   });
 });

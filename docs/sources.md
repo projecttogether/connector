@@ -234,8 +234,10 @@ database's tables (data sources) for pages whose title or text properties
 contain every search word; common words such as "the" do not count, and
 "quoted phrases" stay whole. Pages whose title matches come first, then the
 latest edits. Reading a page gives its properties and its content as
-Markdown; recent changes are the pages edited since the date. A status
-property becomes the result's status.
+Markdown (Notion's tags for callouts, toggles, columns, styled tables,
+mentions and dates become plain text and links); recent changes are the
+pages edited since the date. A status property becomes the result's
+status.
 
 Notion allows about three table queries a second per integration, so a
 search asks three tables at once and the rest a third of a second apart: a

@@ -505,6 +505,64 @@ function databaseOf(config: NotionConfig, page: Page): NotionDatabase | null {
   return config.databases.find((database) => database.id === id) ?? null;
 }
 
+/** Notion's tags inside a line (styles, a mention of a person); other tags end a line. */
+const INLINE_TAGS = new Set(["b", "i", "s", "u", "span", "code", "mention"]);
+const TAG = /(?<!\\)<\/?([a-z][a-z0-9_-]*)(?:\s+[a-z][a-z0-9_:-]*(?:="[^"]*")?)*\s*\/?>/gi;
+
+function attributesOf(text: string): Record<string, string> {
+  return Object.fromEntries(
+    [...text.matchAll(/([a-z][a-z0-9_:-]*)="([^"]*)"/gi)].map((match) => [match[1]!, match[2]!]),
+  );
+}
+
+const webUrl = (value: string | undefined) => (value && /^https?:\/\//i.test(value) ? value : null);
+
+/** One line of Notion's Markdown outside code, without its tags. */
+function untag(text: string): string {
+  return text
+    .replace(
+      /(?<!\\)<(page|database|mention)\b([^>]*)>([^<]*)<\/\1>/gi,
+      (_, _tag: string, attributes: string, label: string) => {
+        const url = webUrl(attributesOf(attributes).url);
+        return url && label ? `[${label}](${url})` : label;
+      },
+    )
+    .replace(
+      /(?<!\\)<image\b([^>]*?)\s*(?:\/>|>([^<]*)<\/image>)/gi,
+      (_, attributes: string, caption?: string) => {
+        const source = webUrl(attributesOf(attributes).source);
+        return source ? `![${caption ?? ""}](${source})` : (caption ?? "");
+      },
+    )
+    .replace(/(?<!\\)<date\b([^>]*?)\s*\/>/gi, (_, attributes: string) => {
+      const { start, end } = attributesOf(attributes);
+      return [start, end].filter(Boolean).join(" – ");
+    })
+    .replace(TAG, (_, name: string) => (INLINE_TAGS.has(name.toLowerCase()) ? "" : "\n"));
+}
+
+/**
+ * Notion's Markdown as plain Markdown. Notion writes callouts, toggles,
+ * columns, styled tables, mentions and dates as XML-style tags, which
+ * Markdown renderers drop together with their text: links to pages and
+ * images stay links, dates their dates, the other tags go and their text
+ * stays. Code is left as it is.
+ */
+export function plainMarkdown(markdown: string): string {
+  let fenced = false;
+  return markdown
+    .split("\n")
+    .map((line) => {
+      if (/^\s*(```|~~~)/.test(line)) fenced = !fenced;
+      if (fenced || /^\s*(```|~~~)/.test(line)) return line;
+      return line
+        .split(/(`+[^`]*`+)/)
+        .map((part, index) => (index % 2 === 1 ? part : untag(part)))
+        .join("");
+    })
+    .join("\n");
+}
+
 /** A page as Markdown: its title, one line per filled property, then its content. */
 export function pageText(page: Page, content: { markdown: string; truncated?: boolean } | null): string {
   const lines = [`# ${pageTitle(page)}`, ""];
@@ -515,7 +573,7 @@ export function pageText(page: Page, content: { markdown: string; truncated?: bo
     if (text.includes("\n")) lines.push(`**${name}:**`, "", text, "");
     else lines.push(`- **${name}:** ${text}`);
   }
-  if (content?.markdown.trim()) lines.push("", content.markdown.trim());
+  if (content?.markdown.trim()) lines.push("", plainMarkdown(content.markdown).trim());
   if (content?.truncated) lines.push("", "(Notion sent only the start of this page; open it for the rest.)");
   return lines
     .join("\n")
