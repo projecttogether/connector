@@ -36,9 +36,20 @@ const normalize = normalizeGroup;
  * slashes do not matter; case does.
  */
 export function inAnyGroup(groupNames: string[], wanted: string[]): boolean {
+  return memberOfAny(groupNames, wanted, true);
+}
+
+/** True when one of `groups` is one of `wanted` itself; subgroups do not count. */
+export function inAnyGroupExactly(groupNames: string[], wanted: string[]): boolean {
+  return memberOfAny(groupNames, wanted, false);
+}
+
+function memberOfAny(groupNames: string[], wanted: string[], subgroups: boolean): boolean {
   const targets = wanted.map(normalize).filter(Boolean);
   if (targets.length === 0) return false;
   return groupNames
     .map(normalize)
-    .some((group) => targets.some((target) => group === target || group.startsWith(`${target}/`)));
+    .some((group) =>
+      targets.some((target) => group === target || (subgroups && group.startsWith(`${target}/`))),
+    );
 }

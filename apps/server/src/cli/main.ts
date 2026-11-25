@@ -35,7 +35,7 @@ Tokens (a new one goes to stdout alone, once; notes go to stderr):
                                                   for a bot such as the Support Agent
   cli tokens create scim --name <name> [--expires-in-days <days>|never]
                                                   for an identity system such as IAM
-  cli tokens create webhook-secret --source <id>  for a Logbook or Library; replaces the one before
+  cli tokens create webhook-secret --source <id>  for a Logbook, Library or IT Knowledge Base; replaces the one before
   cli tokens list [--json]                        the service and SCIM tokens
   cli tokens revoke <id>                          end a service or SCIM token for good
 

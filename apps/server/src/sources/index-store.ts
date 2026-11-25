@@ -171,6 +171,16 @@ export function visibilityKeys(principal: Principal, teamPrefix: string | null =
   return keys;
 }
 
+/** Items for everyone, and items meant for every one of `keys` (an audience, e.g. a source's access groups). */
+function visibleToAll(keys: string[]): SQL {
+  if (keys.length === 0) return sql`${items.visibility} = 'all'`;
+  const array = sql`array[${sql.join(
+    keys.map((key) => sql`${key}`),
+    sql`, `,
+  )}]::text[]`;
+  return sql`(${items.visibility} = 'all' or ${items.visibilityGroups} @> ${array})`;
+}
+
 /** Items for everyone, and items for one of the caller's keys. */
 function visible(keys: string[]): SQL {
   if (keys.length === 0) return sql`${items.visibility} = 'all'`;
@@ -200,17 +210,19 @@ export function indexAdapter(
   authorityOf: (row: Row, config: Record<string, unknown>) => Authority,
   options: {
     teamPrefix?: (config: Record<string, unknown>) => string | null;
-    /** Whether the caller's groups count inside the source; returning `false` limits them to items for everyone. */
-    groupsCount?: (principal: Principal, source: SourceRow) => boolean;
+    /**
+     * The source's audience as keys: service tokens also see the items meant
+     * for all of them (an item's groups contain every key). Without, they see
+     * only items for everyone.
+     */
+    serviceAudience?: (source: SourceRow) => string[];
   } = {},
 ): Adapter {
   const teamPrefix = (config: Record<string, unknown>) => options.teamPrefix?.(config) ?? null;
-  const visibleTo = (context: AdapterContext) =>
-    visible(
-      options.groupsCount && !options.groupsCount(context.principal, context.source)
-        ? []
-        : visibilityKeys(context.principal, teamPrefix(context.config)),
-    );
+  const visibleTo = ({ principal, source, config }: AdapterContext) => {
+    if (principal.kind === "service") return visibleToAll(options.serviceAudience?.(source) ?? []);
+    return visible(visibilityKeys(principal, teamPrefix(config)));
+  };
   const hit = (row: Row, config: Record<string, unknown>, snippet?: string | null): Hit => ({
     type: row.type,
     externalId: row.externalId,

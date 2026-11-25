@@ -431,7 +431,7 @@ function GuideBody(props: {
       <TextField
         id="setup-groups"
         label={t("accessGroups")}
-        hint={t("accessGroupsHint")}
+        hint={kind === "itkb" ? t("accessGroupsHintExact") : t("accessGroupsHint")}
         value={form.accessGroups}
         placeholder="/staff"
         error={fields.accessGroups}

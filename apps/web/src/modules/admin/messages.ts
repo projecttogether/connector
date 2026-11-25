@@ -135,6 +135,8 @@ export const messages = defineMessages({
     webhookSecret: "Webhook secret",
     webhookSecretHint: "Optional: paste the app's signing secret, or generate one after saving.",
     accessGroups: "Groups",
+    accessGroupsHintExact:
+      "Comma-separated, e.g. /staff. Only members of these groups themselves may use it, as on the site; subgroups do not count.",
     accessGroupsHint:
       "Comma-separated, e.g. /staff. Members (and subgroups) may use the source. Empty: everyone signed in.",
     serviceAccess: "Bots may read it",

@@ -465,7 +465,7 @@ export function SourceDialog(props: {
           <TextField
             id="source-groups"
             label={t("accessGroups")}
-            hint={t("accessGroupsHint")}
+            hint={form.kind === "itkb" ? t("accessGroupsHintExact") : t("accessGroupsHint")}
             value={form.accessGroups}
             placeholder="/staff"
             error={fields.accessGroups}
