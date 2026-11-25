@@ -121,7 +121,8 @@ PostgreSQL holds everything (`apps/server/src/db/schema/`).
 
 `sources/service.ts` decides which sources a principal may use
 (`mayUse`): enabled, and for a person no access groups or one of them
-(`directory/groups.ts`, `inAnyGroup`: subgroups count); for a service token
+(`directory/groups.ts`, `inAnyGroup`: subgroups count; for the IT Knowledge
+Base `inAnyGroupExactly`, as its site checks them); for a service token
 `service_access`. Adapters run only through `sources/use.ts`: `useSources`
 and `useSource` check `mayUse` themselves, so `fetch` of a closed source
 answers 404 like an unknown item; admin pages and the worker use

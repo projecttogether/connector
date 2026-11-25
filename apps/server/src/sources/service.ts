@@ -14,7 +14,7 @@ import { items, linkRequests, sourceLinks, sources } from "../db/schema";
 import type { Actor, Principal } from "../auth/principal";
 import { decryptJson, encryptJson, secretHint, SecretDecryptionError } from "../core/crypto";
 import { audit } from "../core/audit";
-import { inAnyGroup } from "../directory/groups";
+import { inAnyGroup, inAnyGroupExactly } from "../directory/groups";
 import { conflict, notFound, validationError, zodFieldErrors } from "../http/errors";
 import { logger } from "../logger";
 import { sourceStateJudge } from "./health";
@@ -30,6 +30,13 @@ import type { SourceRow } from "./types";
 const WEBHOOK_KINDS = new Set<SourceKind>(["logbook", "library", "itkb"]);
 
 export const isWebhookKind = (kind: string) => WEBHOOK_KINDS.has(kind as SourceKind);
+
+/**
+ * Kinds whose app admits only members of a group itself, not of its
+ * subgroups: the IT Knowledge Base's sign-in proxy. Their access groups do
+ * the same, so everyone who may use the source may read what is meant for it.
+ */
+const EXACT_GROUP_KINDS = new Set<SourceKind>(["itkb"]);
 
 /** The kind of a stored source (rows are written only with known kinds). */
 export function kindOf(row: SourceRow): SourceKind {
@@ -326,7 +333,9 @@ export async function rotateWebhookSecret(
 export function mayUse(principal: Principal, row: SourceRow): boolean {
   if (!row.enabled) return false;
   if (principal.kind === "service") return row.serviceAccess;
-  return row.accessGroups.length === 0 || inAnyGroup(principal.groups, row.accessGroups);
+  if (row.accessGroups.length === 0) return true;
+  const member = EXACT_GROUP_KINDS.has(row.kind as SourceKind) ? inAnyGroupExactly : inAnyGroup;
+  return member(principal.groups, row.accessGroups);
 }
 
 /** The sources a caller may use, in the source order; `slugs` narrows them. */

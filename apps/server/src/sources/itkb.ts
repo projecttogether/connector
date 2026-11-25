@@ -129,16 +129,10 @@ export const itkbAdapter = indexAdapter(
       : "knowledge";
   },
   {
-    // The site admits only members of its group itself; the source's access
-    // groups admit their subgroups too. Members of a subgroup alone see the
-    // public pages, whatever other groups they have.
-    groupsCount: (principal, source) => {
-      if (source.accessGroups.length === 0 || principal.kind !== "user") return true;
-      const groups = new Set(principal.groups.map(normalizeGroup));
-      return source.accessGroups.some((group) => groups.has(normalizeGroup(group)));
-    },
     // Bots read the pages meant for everyone the source is open to: pages
     // for all of its access groups, never pages only some of them may read.
+    // Its access groups admit only their direct members (`mayUse`), as the
+    // site does, so nobody who may use the source is left out of them.
     serviceAudience: (source) => source.accessGroups.map((group) => `group:${normalizeGroup(group)}`),
   },
 );

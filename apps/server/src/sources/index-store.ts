@@ -210,8 +210,6 @@ export function indexAdapter(
   authorityOf: (row: Row, config: Record<string, unknown>) => Authority,
   options: {
     teamPrefix?: (config: Record<string, unknown>) => string | null;
-    /** Whether the caller's groups count inside the source; returning `false` limits them to items for everyone. */
-    groupsCount?: (principal: Principal, source: SourceRow) => boolean;
     /**
      * The source's audience as keys: service tokens also see the items meant
      * for all of them (an item's groups contain every key). Without, they see
@@ -223,7 +221,6 @@ export function indexAdapter(
   const teamPrefix = (config: Record<string, unknown>) => options.teamPrefix?.(config) ?? null;
   const visibleTo = ({ principal, source, config }: AdapterContext) => {
     if (principal.kind === "service") return visibleToAll(options.serviceAudience?.(source) ?? []);
-    if (options.groupsCount && !options.groupsCount(principal, source)) return visible([]);
     return visible(visibilityKeys(principal, teamPrefix(config)));
   };
   const hit = (row: Row, config: Record<string, unknown>, snippet?: string | null): Hit => ({

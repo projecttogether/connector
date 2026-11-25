@@ -29,7 +29,8 @@ Items have IDs of the form `<source slug>:<type>:<id in the app>`, e.g.
 
 - **Everyone signed in**, or only members of the groups listed under
   _Access groups_ (Keycloak paths count their subgroups: `/staff` admits
-  `/staff/it`). Groups come from the sign-in, the Keycloak directory and
+  `/staff/it`; the IT Knowledge Base admits only members of a group itself,
+  as its site does). Groups come from the sign-in, the Keycloak directory and
   SCIM ([Identity and access](identity-and-access.md)).
 - **Service tokens** (bots such as the Support Agent) read a source only
   when _Service tokens may read_ is on, and then only content meant for
@@ -279,10 +280,9 @@ Connector shows each page to whom the site shows it:
 
 Group names count from wherever Connector knows them (sign-in, the Keycloak
 directory, SCIM, groups made here), as for every source: name no group here
-like one of the site's groups unless the same people belong to it. The
-source's access groups admit their subgroups, as for every source, but like
-the site, only members of an access group itself see more than the public
-pages.
+like one of the site's groups unless the same people belong to it. Unlike
+other sources, the access groups admit only their direct members, as the
+site's sign-in does: a subgroup of the staff group does not count.
 
 Pages the knowledge base marks as not meant for answers
 (`agent_can_answer: false`) are not kept. Deprecated pages carry the status

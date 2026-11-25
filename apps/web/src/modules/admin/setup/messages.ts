@@ -61,6 +61,8 @@ export const messages = defineMessages({
     accessTitle: "Who may use it",
     accessDescription: "Connector checks this before it asks the app; the app's own rules apply too.",
     accessGroups: "Groups",
+    accessGroupsHintExact:
+      "Comma-separated, e.g. /staff. Only members of these groups themselves may use it, as on the site; subgroups do not count.",
     accessGroupsHint:
       "Comma-separated, e.g. /staff. Members and subgroups may use it. Empty: everyone signed in.",
     allowLinking: "People may link their Handbook account",
