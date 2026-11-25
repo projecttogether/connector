@@ -27,6 +27,7 @@ client has a service account with `view-users` for `DIRECTORY=keycloak`.
 To try sources, run the other apps (Handbook, Logbook, Library, CRM) in
 development (on other ports) and connect them under **Administration →
 Sources**, or send signed webhooks by hand ([Sources](docs/sources.md)).
+Notion needs an integration in a real workspace (a free one will do).
 
 `npm run dev` starts the Vite dev server and the server with `APP_ROLE=all`,
 so the worker runs too. The Vite server passes `/api`, `/mcp`, `/oauth`,
@@ -64,7 +65,7 @@ don't rename in place.
 Unit tests sit next to the code (`*.test.ts`). Integration tests
 (`*.int.test.ts`) get a fresh database (`TEST_DATABASE_URL`, default
 `connector_test` on the development PostgreSQL). Tests never call real
-services: Handbook, CRM and their OAuth servers are local stand-ins
+services: Handbook, CRM, Notion's API and their OAuth servers are local stand-ins
 (`apps/server/src/test/fake-app.ts`). End-to-end tests in `e2e/` sign in
 through the development Keycloak in a real browser.
 

@@ -20,6 +20,7 @@ import type { Setting, SettingRow } from "./settings";
 const SECRET_LABELS: Record<SourceKind, string> = {
   handbook: "service token",
   crm: "API key",
+  notion: "integration secret",
   logbook: "webhook secret",
   library: "webhook secret",
 };

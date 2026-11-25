@@ -145,7 +145,63 @@ describe("source forms", () => {
       allowLinking: true,
     });
   });
+
+  it("sends a Notion source's databases with their levels, and keeps its API address", () => {
+    const form = {
+      ...emptyForm("notion"),
+      name: "Notion",
+      slug: "notion",
+      integrationSecret: "ntn_secret",
+      databases: [
+        {
+          id: " https://www.notion.so/example-org/Wiki-1a2b3c4d5e6f47a8b9c0d1e2f3a4b5c6?v=1 ",
+          authority: "knowledge" as const,
+        },
+        { id: "2b3c4d5e6f7a48b9c0d1e2f3a4b5c6d7", authority: "history" as const },
+      ],
+    };
+    expect(createBody(form)).toMatchObject({
+      kind: "notion",
+      config: {
+        baseUrl: "https://www.notion.so",
+        databases: [
+          {
+            id: "https://www.notion.so/example-org/Wiki-1a2b3c4d5e6f47a8b9c0d1e2f3a4b5c6?v=1",
+            authority: "knowledge",
+          },
+          { id: "2b3c4d5e6f7a48b9c0d1e2f3a4b5c6d7", authority: "history" },
+        ],
+      },
+      secret: { integrationSecret: "ntn_secret" },
+    });
+    const stored = formOf({
+      ...notion,
+      config: { ...notion.config, apiUrl: "https://notion-proxy.example.org" },
+    });
+    expect(stored.databases).toEqual([{ id: "1a2b3c4d-5e6f-47a8-b9c0-d1e2f3a4b5c6", authority: "record" }]);
+    expect(updateBody(stored).config).toEqual({
+      baseUrl: "https://www.notion.so/example-org",
+      databases: [{ id: "1a2b3c4d-5e6f-47a8-b9c0-d1e2f3a4b5c6", authority: "record" }],
+      apiUrl: "https://notion-proxy.example.org",
+    });
+  });
 });
+
+const notion: Source = {
+  ...handbook,
+  id: "0b5a3e5e-3c1f-4d8e-9f3a-777777777777",
+  slug: "notion",
+  kind: "notion",
+  name: "Notion",
+  accessGroups: [],
+  serviceAccess: false,
+  config: {
+    baseUrl: "https://www.notion.so/example-org",
+    databases: [{ id: "1a2b3c4d-5e6f-47a8-b9c0-d1e2f3a4b5c6", authority: "record" }],
+  },
+  secrets: { integrationSecret: "…cret" },
+  status: null,
+};
 
 const logbook: Source = {
   ...handbook,
@@ -175,7 +231,8 @@ describe("admin sources", () => {
       "href",
       "/admin/setup/logbook",
     );
-    expect(screen.getAllByRole("menuitem")).toHaveLength(4);
+    expect(screen.getByRole("menuitem", { name: "Notion" })).toHaveAttribute("href", "/admin/setup/notion");
+    expect(screen.getAllByRole("menuitem")).toHaveLength(5);
   });
 
   it("shows a new webhook secret hidden, even after the one before was shown", async () => {
@@ -397,6 +454,57 @@ describe("setup guides", () => {
         config: { baseUrl: "https://handbook.example.org", ruleSpaces: ["purpose"], allowLinking: true },
       }),
     );
+  });
+
+  it("connects Notion: the integration secret and several databases, each with its level", async () => {
+    let stored: Source | null = null;
+    let posted: unknown;
+    routeFetch({
+      "GET /api/v1/admin/sources": () => ({ items: stored ? [stored] : [] }),
+      "POST /api/v1/admin/sources": (init?: RequestInit) => {
+        posted = JSON.parse(String(init?.body));
+        stored = notion;
+        return notion;
+      },
+      [`POST /api/v1/admin/sources/${notion.id}/check`]: {
+        ok: true,
+        message: "Reached Notion; searching Wiki, Meeting notes",
+      },
+    });
+    renderAt("/admin/setup/notion", () => <SetupPage app="notion" onCreated={() => undefined} />);
+    const user = userEvent.setup();
+    expect(await screen.findByLabelText("Address")).toHaveValue("https://www.notion.so");
+    expect(screen.getByRole("link", { name: "Notion's integrations" })).toHaveAttribute(
+      "href",
+      "https://www.notion.so/profile/integrations",
+    );
+    await user.type(screen.getByLabelText("Integration secret"), "ntn_secret");
+    await user.type(
+      screen.getByLabelText("Link of database 1"),
+      "https://www.notion.so/example-org/Wiki-1a2b3c4d5e6f47a8b9c0d1e2f3a4b5c6",
+    );
+    expect(screen.getByRole("button", { name: "Remove database 1" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Add database" }));
+    await user.type(screen.getByLabelText("Link of database 2"), "2b3c4d5e6f7a48b9c0d1e2f3a4b5c6d7");
+    await user.click(screen.getByRole("combobox", { name: "Level of database 2" }));
+    await user.click(await screen.findByRole("option", { name: "Logbook history" }));
+    await user.click(screen.getByRole("button", { name: "Connect and test" }));
+    expect(await screen.findByText("Reached Notion; searching Wiki, Meeting notes")).toBeInTheDocument();
+    expect(posted).toMatchObject({
+      kind: "notion",
+      slug: "notion",
+      config: {
+        baseUrl: "https://www.notion.so",
+        databases: [
+          {
+            id: "https://www.notion.so/example-org/Wiki-1a2b3c4d5e6f47a8b9c0d1e2f3a4b5c6",
+            authority: "knowledge",
+          },
+          { id: "2b3c4d5e6f7a48b9c0d1e2f3a4b5c6d7", authority: "history" },
+        ],
+      },
+      secret: { integrationSecret: "ntn_secret" },
+    });
   });
 
   it("connects IAM: a SCIM token shown once, the values for IAM, and its first request", async () => {

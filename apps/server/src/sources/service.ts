@@ -1,6 +1,12 @@
 import { randomBytes } from "node:crypto";
 import { asc, count, eq, max, sql } from "drizzle-orm";
-import type { Source, SourceCreate, SourceSummary, SourceUpdate } from "@connector/shared/api/sources";
+import {
+  NOTION_API_URL,
+  type Source,
+  type SourceCreate,
+  type SourceSummary,
+  type SourceUpdate,
+} from "@connector/shared/api/sources";
 import { SOURCE_KIND_INFO, type SourceKind } from "@connector/shared/sources";
 import { config } from "../config";
 import type { Db } from "../db/client";
@@ -63,6 +69,15 @@ function originOf(value: unknown): string | null {
   }
 }
 
+/**
+ * Where a live source's credentials go: Notion's API, else the app's
+ * address. Webhook sources send none.
+ */
+function credentialsOrigin(kind: string, config: Record<string, unknown>): string | null {
+  if (isWebhookKind(kind)) return null;
+  return originOf(kind === "notion" ? (config.apiUrl ?? NOTION_API_URL) : config.baseUrl);
+}
+
 export const webhookUrl = (slug: string) => `${config().APP_URL}/hooks/${slug}`;
 
 export async function sourceView(db: Db, row: SourceRow): Promise<Source> {
@@ -95,8 +110,8 @@ export async function sourceView(db: Db, row: SourceRow): Promise<Source> {
   };
 }
 
-/** Kinds in the source order of their strongest items: rules (Handbook), decisions, records, library. */
-const KIND_ORDER: Record<SourceKind, number> = { handbook: 0, logbook: 1, crm: 2, library: 3 };
+/** Kinds in the source order of their strongest items: rules (Handbook), decisions, knowledge (Notion), records, library. */
+const KIND_ORDER: Record<SourceKind, number> = { handbook: 0, logbook: 1, notion: 2, crm: 3, library: 4 };
 
 /** Sources in the source order of their kind, then by position and name. */
 export function inSourceOrder(rows: SourceRow[]): SourceRow[] {
@@ -209,13 +224,13 @@ export async function updateSource(db: Db, actor: Actor, id: string, input: Sour
     set.config = parsed.data;
     changes.push("changed its settings");
   }
-  // Credentials of a live source belong to its address: a new origin drops
-  // them (unless new ones come along), the linked accounts and Connector's
-  // registration there, so nothing is sent to the new address unasked.
+  // Credentials of a live source belong to the address they go to: a new
+  // origin drops them (unless new ones come along), the linked accounts and
+  // Connector's registration there, so nothing is sent to the new address unasked.
   const moved =
     !isWebhookKind(row.kind) &&
     set.config !== undefined &&
-    originOf(set.config.baseUrl) !== originOf(row.config.baseUrl);
+    credentialsOrigin(row.kind, set.config) !== credentialsOrigin(row.kind, row.config);
   if (moved) {
     set.secretEncrypted = null;
     set.oauthClientEncrypted = null;

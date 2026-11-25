@@ -2,7 +2,7 @@
 
 ProjectTogether's open-source memory layer for AI agents: one connection
 for agents and bots to everything an organization keeps in its Handbook,
-Logbook, Library and CRM. Connector asks each app when someone asks, checks
+Logbook, Library, CRM and Notion. Connector asks each app when someone asks, checks
 what that person may see before it returns anything, links every result to
 its source, and orders results by which source wins when they disagree.
 
@@ -13,7 +13,8 @@ its source, and orders results by which source wins when they disagree.
 - **Deep integrations.** Handbook pages (live, with the person's own
   Handbook account when linked), Logbook decisions, updates and learnings
   and Library notes (by signed webhooks), CRM contacts, organizations,
-  deals, events and meetings (live, with an API key).
+  deals, events and meetings (live, with an API key), pages of chosen
+  Notion databases, each at its own level (live, with an integration).
 - **Source order.** Purpose and rules, decisions in force, knowledge base,
   logbook history, records, library: every result carries its level, and
   `get_context` groups a topic by it and points out decisions that are newer
@@ -48,7 +49,7 @@ Hono server, React web app, PostgreSQL, one Docker image.
 
 - [User guide](docs/user-guide.md): searching, context, connecting your AI,
   linked accounts.
-- [Sources](docs/sources.md): connecting Handbook, Logbook, Library and CRM;
+- [Sources](docs/sources.md): connecting Handbook, Logbook, Library, CRM and Notion;
   the Support Agent and IAM.
 - [Agents and MCP](docs/agents.md): connecting Claude, ChatGPT, Le Chat and
   other agents; tools; bots.

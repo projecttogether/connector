@@ -17,7 +17,7 @@ Sentry and troubleshooting. Every environment variable is described in
 - **Caddy** (or another reverse proxy on the server) that terminates HTTPS.
 - **An OpenID Connect provider** for sign-in (Keycloak, Microsoft Entra ID,
   Google, Authentik, …), see [Identity and access](identity-and-access.md).
-- **The apps to connect** (Handbook, Logbook, Library, CRM), reachable from
+- **The apps to connect** (Handbook, Logbook, Library, CRM, Notion), reachable from
   Connector's server; Logbook and Library must reach Connector's `/hooks/`
   addresses ([Sources](sources.md)).
 
@@ -189,6 +189,29 @@ optional:
 
 ```json
 {
+  "kind": "notion",
+  "slug": "notion",
+  "name": "Notion",
+  "config": {
+    "baseUrl": "https://www.notion.so/example-org",
+    "databases": [
+      {
+        "id": "https://www.notion.so/example-org/Wiki-1a2b3c4d5e6f47a8b9c0d1e2f3a4b5c6",
+        "authority": "knowledge"
+      },
+      { "id": "2b3c4d5e6f7a48b9c0d1e2f3a4b5c6d7", "authority": "history" }
+    ]
+  },
+  "secret": { "integrationSecret": "<the Notion integration's secret>" }
+}
+```
+
+A Notion source's `databases` take each database's link or ID and a level
+(`knowledge`, `history`, `record` or `library`); `apiUrl` (Notion's API,
+`https://api.notion.com`) changes only for a proxy.
+
+```json
+{
   "kind": "logbook",
   "slug": "logbook",
   "name": "Logbook",
@@ -209,8 +232,9 @@ With `--id`, a body changes only the fields it names; `config` is replaced
 as a whole, and the kind and the slug stay:
 `{ "accessGroups": ["/staff"], "secret": { "apiKey": "<a new key>" } }`. A
 secret that is left out or empty stays as saved. A Handbook or CRM that
-moves to another host loses its secret and its linked accounts, as on the
-page: send the new secret along, or apply it next.
+moves to another host, or a Notion source with another `apiUrl`, loses its
+secret and its linked accounts, as on the page: send the new secret along,
+or apply it next.
 
 ### Tokens
 
@@ -416,7 +440,9 @@ refused: email domain not allowed`, `… not in ACCESS_GROUPS`, `… blocked`,
   service tokens only where everyone in the bot's audience may read it
   ([Sources](sources.md#who-may-use-a-source)).
 - Give Connector the narrowest credentials at each app: a Handbook service
-  token, a CRM API key with the viewer role and read scopes only.
+  token, a CRM API key with the viewer role and read scopes only, a Notion
+  integration that may only read content and sees only the databases
+  Connector searches.
 - Agents only propose Handbook changes; editors decide. Read the diff
   before merging, also when an agent made it: content can contain
   instructions meant to mislead agents.

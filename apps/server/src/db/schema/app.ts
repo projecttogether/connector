@@ -55,7 +55,7 @@ export const sources = pgTable("sources", {
   id: uuid("id").primaryKey().defaultRandom(),
   /** Starts item IDs (`<slug>:<type>:<id>`) and the webhook URL (/hooks/<slug>). */
   slug: text("slug").notNull().unique(),
-  /** handbook, logbook, library or crm (`@connector/shared/sources`). */
+  /** handbook, logbook, library, crm or notion (`@connector/shared/sources`). */
   kind: text("kind").notNull(),
   name: text("name").notNull(),
   description: text("description"),

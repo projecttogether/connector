@@ -13,6 +13,7 @@ does the same without a browser
 | Logbook  | Decisions, updates, learnings                              | Its webhook; Connector keeps a search index                           |
 | Library  | Studies, reports, articles with source notes               | Its webhook; Connector keeps a search index                           |
 | CRM      | Contacts, organizations, deals, events, meetings, segments | Live, through its API (API key)                                       |
+| Notion   | Pages of the databases an admin chose                      | Live, through its API (integration secret)                            |
 
 Live sources answer at every request, so nothing is copied and nothing
 gets stale. Webhook sources send each published item and each change;
@@ -44,7 +45,7 @@ only to the people the source is open to.
 
 Each app has a guide at **Administration → Status**: where the app is, the
 credentials to create there (with a link to the right page of the app),
-who may use the source, and then a test (Handbook, CRM) or a wait for the
+who may use the source, and then a test (Handbook, CRM, Notion) or a wait for the
 first delivery (Logbook, Library) that turns green on its own. The guides
 for IAM and the Support Agent create their token, show it once,
 list the exact fields to enter in that app, and wait for its first request.
@@ -87,6 +88,10 @@ level; agents get the order in the MCP instructions.
    in force.
 5. **Records**: CRM records.
 6. **Library**: notes about outside sources.
+
+Notion pages take the level an admin chose for their database: knowledge
+base, Logbook history, records or library (never purpose and rules or
+decisions in force).
 
 Search merges each source's best results first and lets the higher level
 win within a round. `get_context` groups a topic by level and adds hints:
@@ -192,6 +197,52 @@ or deleted.
 
 Connector does not use CRM webhooks: their payloads skip the CRM's sharing
 rules.
+
+## Notion
+
+One Notion source searches several databases of a workspace, up to 10,
+each at its own level in the source order. Connect another Notion source
+for databases that other groups may use.
+
+1. In Notion, a workspace owner opens
+   [Integrations](https://www.notion.so/profile/integrations) and creates
+   one: name _Connector_, the workspace, type _Internal_. Under
+   _Capabilities_ it needs only _Read content_ (add _Read user information
+   without email addresses_ to show people's names). Copy the _Internal
+   integration secret_.
+2. Share each database with the integration: in the integration's
+   **Access** tab (**Edit access**), or in the database's **•••** menu under
+   **Connections**.
+3. In Connector, the guide **Connect Notion** asks for the workspace's
+   address (results link to their pages; `https://www.notion.so` by
+   default), the secret and the databases: each database's link (**•••** →
+   **Copy link**) or ID, and its level: _Knowledge base_ (the default) for
+   wikis and guides, _Logbook history_ for meeting notes and project logs,
+   _Records_ for lists of people, partners or projects, _Library_ for notes
+   about outside sources. **Connect and test** reads every database and
+   names them; a database that is not shared with the integration fails
+   the test with its ID.
+
+Connector shows only pages of these databases, even when the integration
+sees more: pages in other databases, pages inside a database's page and
+pages in the trash are not found. Notion's own sharing does not reach
+Connector (one integration reads for everyone), so set _Access groups_ to
+who may read the databases in Notion.
+
+Notion's API cannot search the text of pages. Connector asks each
+database's tables (data sources) for pages whose title or text properties
+contain every search word; common words such as "the" do not count, and
+"quoted phrases" stay whole. Pages whose title matches come first, then the
+latest edits. Reading a page gives its properties and its content as
+Markdown; recent changes are the pages edited since the date. A status
+property becomes the result's status.
+
+Notion allows about three table queries a second per integration, so a
+search asks three tables at once and the rest a third of a second apart: a
+long list of databases makes searches slower. A database that does not
+answer in time is left out; the source fails only when none answers.
+Connector keeps the databases' tables and property names, never pages, in
+memory for five minutes; any change to the source reads them again.
 
 ## Support Agent (a bot that reads)
 

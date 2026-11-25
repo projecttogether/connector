@@ -4,7 +4,15 @@ import { sourceStateSchema, sourceStatusSchema } from "./sources";
 import { sourceKindSchema } from "../sources";
 
 /** Apps with a setup guide in the web app (Administration → Status). */
-export const SETUP_APPS = ["handbook", "logbook", "library", "crm", "iam", "support-agent"] as const;
+export const SETUP_APPS = [
+  "handbook",
+  "logbook",
+  "library",
+  "crm",
+  "notion",
+  "iam",
+  "support-agent",
+] as const;
 export const setupAppSchema = z.enum(SETUP_APPS);
 export type SetupApp = z.infer<typeof setupAppSchema>;
 
