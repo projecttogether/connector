@@ -6,7 +6,7 @@ export const messages = defineMessages({
     description: "{app} wants to use {appName} as you.",
     mayTitle: "It may",
     mayRead:
-      "Search and read what you may see in the connected apps (Handbook, Logbook, Library, CRM, Notion).",
+      "Search and read what you may see in the connected apps (Handbook, Logbook, Library, CRM, Notion, IT Knowledge Base).",
     mayPropose:
       "Propose Handbook changes as you, which editors review and merge (only with your linked Handbook account).",
     mayNot: "It cannot publish changes, see what you may not see, or change settings.",

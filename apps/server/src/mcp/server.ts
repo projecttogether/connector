@@ -3,14 +3,14 @@ import { config } from "../config";
 import type { ApiClient } from "./client";
 import { registerTools } from "./tools";
 
-export const INSTRUCTIONS = `This server connects you to an organization's own apps: its knowledge base (Handbook), its logbook of decisions, updates and learnings (Logbook), its library of studies and reports (Library), its records of contacts and partners (CRM) and chosen Notion databases. You see only what the person you work for may see.
+export const INSTRUCTIONS = `This server connects you to an organization's own apps: its knowledge base (Handbook), its logbook of decisions, updates and learnings (Logbook), its library of studies and reports (Library), its records of contacts and partners (CRM), its IT knowledge base and chosen Notion databases. You see only what the person you work for may see.
 
 Finding: start with get_context for a question or task (everything on a topic, ordered by the source order), or search for a quick lookup; read whole items with fetch. list_sources shows the connected apps. recent_changes shows what changed lately. find_people looks up colleagues.
 
 Source order: when sources disagree, the higher one wins:
-1. Purpose and rules (Handbook pages in rule spaces)
+1. Purpose and rules (Handbook pages in rule spaces, IT policies)
 2. Logbook decisions in force (the newest wins)
-3. Knowledge base pages (Handbook)
+3. Knowledge base pages (Handbook, IT Knowledge Base)
 4. Logbook history (updates, learnings, replaced decisions)
 5. Records (CRM)
 6. Library notes (summaries of outside sources)

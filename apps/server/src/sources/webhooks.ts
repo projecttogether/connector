@@ -4,15 +4,16 @@ import { bodyLimit } from "hono/body-limit";
 import { getDb } from "../db/client";
 import type { AppEnv } from "../http/env";
 import { logger } from "../logger";
-import { removeItem, upsertItem } from "./index-store";
+import { removeItem, removeItemsExcept, upsertItem } from "./index-store";
+import { itkbItem, itkbPayloadSchema } from "./itkb";
 import { libraryItem, libraryPayloadSchema } from "./library";
 import { logbookItem, logbookPayloadSchema } from "./logbook";
 import { recordDelivery } from "./health";
-import { secretOf, sourceBySlug } from "./service";
+import { isWebhookKind, secretOf, sourceBySlug } from "./service";
 
 /**
  * Webhooks of the apps at /hooks/<source slug> (docs/sources.md).
- * Logbook and Library sign `<timestamp>.<raw body>` with HMAC-SHA256 and
+ * Logbook, Library and the IT Knowledge Base sign `<timestamp>.<raw body>` with HMAC-SHA256 and
  * the shared webhook secret; Connector checks the signature against the raw
  * body before reading it, in constant time, and refuses timestamps more
  * than five minutes off. Deliveries are idempotent: each carries the whole
@@ -28,6 +29,7 @@ const HEADERS = {
     signature: ["logbook-signature", "logbuch-signature"],
   },
   library: { timestamp: ["library-timestamp"], signature: ["library-signature"] },
+  itkb: { timestamp: ["itkb-timestamp"], signature: ["itkb-signature"] },
 } as const;
 
 export function signatureOf(secret: string, timestamp: string, body: string): string {
@@ -57,6 +59,8 @@ function header(c: Context<AppEnv>, names: readonly string[]): string | undefine
   return undefined;
 }
 
+const pages = (count: number) => (count === 1 ? "1 page" : `${count} pages`);
+
 const reply = (c: Context<AppEnv>, status: 200 | 400 | 401 | 404 | 503, message: string) =>
   c.json(status === 200 ? { ok: true, message } : { error: { code: "webhook_rejected", message } }, status);
 
@@ -67,14 +71,13 @@ export function webhookRoutes() {
   hooks.post("/:slug", async (c) => {
     const db = getDb();
     const source = await sourceBySlug(db, c.req.param("slug"));
-    if (!source || (source.kind !== "logbook" && source.kind !== "library"))
-      return reply(c, 404, "No such webhook");
+    if (!source || !isWebhookKind(source.kind)) return reply(c, 404, "No such webhook");
     const secret = secretOf(source).webhookSecret;
     if (typeof secret !== "string" || secret === "")
       return reply(c, 503, "This source has no webhook secret yet");
 
     const body = await c.req.text();
-    const names = HEADERS[source.kind];
+    const names = HEADERS[source.kind as keyof typeof HEADERS];
     if (
       !validSignature({
         secret,
@@ -104,6 +107,32 @@ export function webhookRoutes() {
       await upsertItem(db, source.id, item);
       await recordDelivery(db, source, { ok: true, message: `Received ${item.ref}` });
       return reply(c, 200, `Stored ${item.ref}`);
+    }
+
+    if (source.kind === "itkb") {
+      const parsed = itkbPayloadSchema.safeParse(payload);
+      if (!parsed.success) {
+        await recordDelivery(db, source, { ok: false, refused: "payload" });
+        return reply(c, 400, "Not an IT Knowledge Base page");
+      }
+      if (parsed.data.event === "export.completed") {
+        const removed = await removeItemsExcept(db, source.id, parsed.data.page_ids);
+        await recordDelivery(db, source, {
+          ok: true,
+          message: `Received the export of ${pages(parsed.data.page_ids.length)}`,
+        });
+        return reply(c, 200, removed > 0 ? `Removed ${pages(removed)}` : "Nothing to remove");
+      }
+      const item = itkbItem(parsed.data.page, parsed.data.chunks);
+      if (!item) {
+        // Not for answers: what Connector had of it goes.
+        await removeItem(db, source.id, parsed.data.page.id);
+        await recordDelivery(db, source, { ok: true, message: "Left out a page not meant for answers" });
+        return reply(c, 200, "Left out: not meant for answers");
+      }
+      await upsertItem(db, source.id, item);
+      await recordDelivery(db, source, { ok: true, message: `Received ${item.externalId}` });
+      return reply(c, 200, "Stored");
     }
 
     const parsed = libraryPayloadSchema.safeParse(payload);

@@ -64,7 +64,7 @@ export const messages = defineMessages({
       "The organization's apps that Connector searches. Each stays the home of its content; Connector checks who may see what before it returns anything.",
     newSource: "Connect a source",
     noSources: "No sources yet",
-    noSourcesHint: "Connect Handbook, Logbook, Library, the CRM or Notion to start.",
+    noSourcesHint: "Connect Handbook, Logbook, Library, the CRM, Notion or the IT Knowledge Base to start.",
     colSource: "Source",
     colAccess: "Who may use it",
     colStatus: "Status",
@@ -117,6 +117,9 @@ export const messages = defineMessages({
     teamGroupPrefix: "Team groups",
     teamGroupPrefixHint:
       "Team notes are shown to members of <prefix>/<team name>, e.g. /teams. Members of the Keycloak group the note names always see them.",
+    ruleSections: "Rule sections",
+    ruleSectionsHint:
+      "Sections whose pages hold rules staff must follow, comma-separated, e.g. policies: their pages rank first. A section is a folder of the knowledge base, e.g. docs/policies.",
     notionBaseUrl: "Address of the workspace",
     notionBaseUrlHint: "Where people open Notion, e.g. https://www.notion.so/example-org.",
     integrationSecret: "Integration secret",
@@ -142,6 +145,8 @@ export const messages = defineMessages({
     webhookTitle: "Webhook of “{name}”",
     webhookDescription:
       "The app sends its content here. Enter both values in the app under Admin → Integrations → Webhook; everything arrives in its first nightly run (02:30) at the latest. Versions up to 0.3.2 read WEBHOOK_URL and WEBHOOK_SECRET from their environment and need a restart.",
+    webhookDescriptionItkb:
+      "The IT Knowledge Base sends its pages here after each build of its main branch. Add both values to its repository's Actions secrets as CONNECTOR_WEBHOOK_URL and CONNECTOR_WEBHOOK_SECRET.",
     webhookUrl: "URL",
     generate: "Generate webhook secret",
     regenerate: "Generate a new secret",

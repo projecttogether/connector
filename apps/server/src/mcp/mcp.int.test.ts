@@ -211,7 +211,7 @@ describe("MCP server", () => {
       expect.objectContaining({ slug: "logbook", name: "Logbook", state: "waiting", linkedAccount: null }),
     ]);
     expect(sources.sourceOrder[0]).toBe(
-      "1. Purpose and rules: Handbook pages in the spaces that hold the purpose and the rules",
+      "1. Purpose and rules: Handbook pages in the spaces that hold the purpose and the rules, and IT Knowledge Base policies",
     );
     const people = await data(token, "find_people", { query: "office" });
     expect(people.people).toEqual([

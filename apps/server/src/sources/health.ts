@@ -247,7 +247,10 @@ function judgeSource(row: SourceRow, requests: Requests | undefined): SourceVerd
       problem: {
         severity: "warning",
         title: `Waiting for the first delivery from ${name}`,
-        detail: `Enter the webhook's URL and secret in ${app}. It delivers when something is published or changed there, and everything in its first nightly run (02:30) at the latest.`,
+        detail:
+          kind === "itkb"
+            ? `Add the webhook's URL and secret to the ${app}'s CI secrets. It sends every page after each deploy of its main branch.`
+            : `Enter the webhook's URL and secret in ${app}. It delivers when something is published or changed there, and everything in its first nightly run (02:30) at the latest.`,
       },
     };
   }

@@ -50,12 +50,12 @@ See [Agents and MCP](agents.md).
 
 ## Sources and search
 
-| Variable                 | Default   | Meaning                                                                                                                                                                                          |
-| ------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `SOURCE_TIMEOUT_SECONDS` | `8`       | How long a search waits for a live source (Handbook, CRM, Notion); a slower source is reported and left out.                                                                                     |
-| `SOURCE_CHECK_MINUTES`   | `15`      | How often the worker checks the live sources (Handbook, CRM, Notion) for the status page; `0`: only admins check.                                                                                |
-| `SEARCH_LANGUAGES`       | `english` | PostgreSQL text search configurations for the index of webhook sources (Logbook, Library), comma-separated, e.g. `english,german`. Exact words always match. The worker rebuilds after a change. |
-| `ACTIVITY_LOG_DAYS`      | `90`      | Days the activity log keeps what agents and bots asked (with their search words); `0` records nothing.                                                                                           |
+| Variable                 | Default   | Meaning                                                                                                                                                                                                             |
+| ------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SOURCE_TIMEOUT_SECONDS` | `8`       | How long a search waits for a live source (Handbook, CRM, Notion); a slower source is reported and left out.                                                                                                        |
+| `SOURCE_CHECK_MINUTES`   | `15`      | How often the worker checks the live sources (Handbook, CRM, Notion) for the status page; `0`: only admins check.                                                                                                   |
+| `SEARCH_LANGUAGES`       | `english` | PostgreSQL text search configurations for the index of webhook sources (Logbook, Library, IT Knowledge Base), comma-separated, e.g. `english,german`. Exact words always match. The worker rebuilds after a change. |
+| `ACTIVITY_LOG_DAYS`      | `90`      | Days the activity log keeps what agents and bots asked (with their search words); `0` records nothing.                                                                                                              |
 
 ## Processes and server
 

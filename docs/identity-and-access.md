@@ -232,4 +232,4 @@ token lists show who created each one.
   stop within `AGENT_SIGN_IN_DAYS` of it.
 - **Admins:** revoke and replace the service and SCIM tokens they created,
   and rotate source credentials they saw (Handbook service tokens, CRM API
-  keys, Notion integration secrets, webhook secrets).
+  keys, Notion integration secrets, webhook secrets of Logbook, Library and the IT Knowledge Base).

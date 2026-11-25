@@ -232,7 +232,11 @@ describe("admin sources", () => {
       "/admin/setup/logbook",
     );
     expect(screen.getByRole("menuitem", { name: "Notion" })).toHaveAttribute("href", "/admin/setup/notion");
-    expect(screen.getAllByRole("menuitem")).toHaveLength(5);
+    expect(screen.getByRole("menuitem", { name: "IT Knowledge Base" })).toHaveAttribute(
+      "href",
+      "/admin/setup/itkb",
+    );
+    expect(screen.getAllByRole("menuitem")).toHaveLength(6);
   });
 
   it("shows a new webhook secret hidden, even after the one before was shown", async () => {
@@ -330,6 +334,52 @@ describe("setup guides", () => {
     expect(screen.getByText("Received LB-12 · 1 item")).toBeInTheDocument();
     // The secret stays to copy until the admin leaves.
     expect(screen.getByLabelText("Signing secret")).toHaveValue("generated-secret-1234567890");
+  });
+
+  it("connects the IT Knowledge Base: rule sections, and the values for its CI secrets", async () => {
+    const itkb: Source = {
+      ...logbook,
+      id: "0b5a3e5e-3c1f-4d8e-9f3a-555555555556",
+      slug: "itkb",
+      kind: "itkb",
+      name: "IT Knowledge Base",
+      config: { baseUrl: "https://it.example.org", ruleSections: ["policies"] },
+      webhookUrl: "https://connector.example.org/hooks/itkb",
+    };
+    let posted: unknown;
+    routeFetch({
+      "GET /api/v1/admin/sources": () => ({ items: posted ? [itkb] : [] }),
+      "POST /api/v1/admin/sources": (init?: RequestInit) => {
+        posted = JSON.parse(String(init?.body));
+        return itkb;
+      },
+      [`POST /api/v1/admin/sources/${itkb.id}/webhook-secret`]: {
+        webhookSecret: "generated-secret-1234567890",
+        createdAt: "2026-11-19T09:59:00.000Z",
+      },
+    });
+    renderAt("/admin/setup/itkb", () => <SetupPage app="itkb" onCreated={() => undefined} />);
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText("Address"), "https://it.example.org");
+    expect(screen.getByLabelText("Rule sections")).toHaveValue("policies");
+    await user.type(screen.getByLabelText("Rule sections"), ", security");
+    await user.click(screen.getByRole("button", { name: "Connect" }));
+    await waitFor(() =>
+      expect(posted).toMatchObject({
+        kind: "itkb",
+        slug: "itkb",
+        name: "IT Knowledge Base",
+        config: { baseUrl: "https://it.example.org", ruleSections: ["policies", "security"] },
+        secret: {},
+      }),
+    );
+    expect(await screen.findByTestId("webhook-url")).toHaveTextContent(
+      "https://connector.example.org/hooks/itkb",
+    );
+    expect(screen.getByText(/CONNECTOR_WEBHOOK_URL and CONNECTOR_WEBHOOK_SECRET/)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Admin → Integrations" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/WEBHOOK_URL and WEBHOOK_SECRET to its environment/)).not.toBeInTheDocument();
+    expect(screen.getByText(/after each build of its main branch/)).toBeInTheDocument();
   });
 
   it("continues a webhook source: a refused delivery wins over an older one, and a new secret waits for a new delivery", async () => {

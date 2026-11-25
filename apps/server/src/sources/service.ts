@@ -27,7 +27,7 @@ import type { SourceRow } from "./types";
  * server; admins see their last characters.
  */
 
-const WEBHOOK_KINDS = new Set<SourceKind>(["logbook", "library"]);
+const WEBHOOK_KINDS = new Set<SourceKind>(["logbook", "library", "itkb"]);
 
 export const isWebhookKind = (kind: string) => WEBHOOK_KINDS.has(kind as SourceKind);
 
@@ -110,8 +110,15 @@ export async function sourceView(db: Db, row: SourceRow): Promise<Source> {
   };
 }
 
-/** Kinds in the source order of their strongest items: rules (Handbook), decisions, knowledge (Notion), records, library. */
-const KIND_ORDER: Record<SourceKind, number> = { handbook: 0, logbook: 1, notion: 2, crm: 3, library: 4 };
+/** Kinds in the source order of their strongest items: rules (Handbook, IT Knowledge Base), decisions, knowledge (Notion), records, library. */
+const KIND_ORDER: Record<SourceKind, number> = {
+  handbook: 0,
+  itkb: 1,
+  logbook: 2,
+  notion: 3,
+  crm: 4,
+  library: 5,
+};
 
 /** Sources in the source order of their kind, then by position and name. */
 export function inSourceOrder(rows: SourceRow[]): SourceRow[] {

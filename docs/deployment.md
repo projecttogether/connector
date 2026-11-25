@@ -17,7 +17,7 @@ Sentry and troubleshooting. Every environment variable is described in
 - **Caddy** (or another reverse proxy on the server) that terminates HTTPS.
 - **An OpenID Connect provider** for sign-in (Keycloak, Microsoft Entra ID,
   Google, Authentik, …), see [Identity and access](identity-and-access.md).
-- **The apps to connect** (Handbook, Logbook, Library, CRM, Notion), reachable from
+- **The apps to connect** (Handbook, Logbook, Library, CRM, Notion, the IT Knowledge Base), reachable from
   Connector's server; Logbook and Library must reach Connector's `/hooks/`
   addresses ([Sources](sources.md)).
 
@@ -221,6 +221,16 @@ A Notion source's `databases` take each database's link or ID and a level
 
 ```json
 {
+  "kind": "itkb",
+  "slug": "itkb",
+  "name": "IT Knowledge Base",
+  "accessGroups": ["/staff"],
+  "config": { "baseUrl": "https://it.example.org", "ruleSections": ["policies"] }
+}
+```
+
+```json
+{
   "kind": "library",
   "slug": "library",
   "name": "Library",
@@ -238,11 +248,11 @@ or apply it next.
 
 ### Tokens
 
-| Kind             | Options                                           | For                                                                                                  |
-| ---------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `service`        | `--name <name> [--expires-in-days <days>\|never]` | Bots such as the Support Agent; stderr names the search URL                                          |
-| `scim`           | `--name <name> [--expires-in-days <days>\|never]` | Identity systems such as IAM; stderr names the SCIM base URL                                         |
-| `webhook-secret` | `--source <id>`                                   | Logbook and Library: a new webhook secret that replaces the one before; stderr names the webhook URL |
+| Kind             | Options                                           | For                                                                                                                         |
+| ---------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `service`        | `--name <name> [--expires-in-days <days>\|never]` | Bots such as the Support Agent; stderr names the search URL                                                                 |
+| `scim`           | `--name <name> [--expires-in-days <days>\|never]` | Identity systems such as IAM; stderr names the SCIM base URL                                                                |
+| `webhook-secret` | `--source <id>`                                   | Logbook, Library and the IT Knowledge Base: a new webhook secret that replaces the one before; stderr names the webhook URL |
 
 Run these in the running container, with `docker compose exec`: the token
 is alone on stdout, so `> file` keeps only the token, and Docker does not log

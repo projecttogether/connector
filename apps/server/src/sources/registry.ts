@@ -4,6 +4,7 @@ import {
   crmSecretSchema,
   handbookConfigSchema,
   handbookSecretSchema,
+  itkbConfigSchema,
   libraryConfigSchema,
   logbookConfigSchema,
   notionConfigSchema,
@@ -13,6 +14,7 @@ import {
 import type { SourceKind } from "@connector/shared/sources";
 import { crmAdapter } from "./crm";
 import { handbookAdapter } from "./handbook";
+import { itkbAdapter } from "./itkb";
 import { libraryAdapter } from "./library";
 import { logbookAdapter } from "./logbook";
 import { notionAdapter } from "./notion";
@@ -28,6 +30,7 @@ export const KINDS: Record<
   notion: { adapter: notionAdapter, config: notionConfigSchema, secret: notionSecretSchema },
   logbook: { adapter: logbookAdapter, config: logbookConfigSchema, secret: webhookSecretSchema },
   library: { adapter: libraryAdapter, config: libraryConfigSchema, secret: webhookSecretSchema },
+  itkb: { adapter: itkbAdapter, config: itkbConfigSchema, secret: webhookSecretSchema },
 };
 
 export function isSourceKind(value: string): value is SourceKind {

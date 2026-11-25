@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, notInArray, sql, type SQL } from "drizzle-orm";
 import { HIGHLIGHT_END, HIGHLIGHT_START } from "@connector/shared/api/search";
 import { MAX_ITEM_TEXT, MAX_SNIPPET } from "@connector/shared/limits";
 import type { Authority, SourceKind } from "@connector/shared/sources";
@@ -8,10 +8,19 @@ import { logger } from "../logger";
 import type { DbOrTx } from "../db/client";
 import { items } from "../db/schema";
 import type { Principal } from "../auth/principal";
-import { SourceError, type Adapter, type FetchedItem, type Hit } from "./types";
+import { normalizeGroup } from "../directory/groups";
+import {
+  SourceError,
+  type Adapter,
+  type AdapterContext,
+  type FetchedItem,
+  type Hit,
+  type SourceRow,
+} from "./types";
 
 /*
- * The index of webhook sources: what Logbook and Library sent, searchable
+ * The index of webhook sources: what Logbook, Library and the IT Knowledge
+ * Base sent, searchable
  * with PostgreSQL full-text search in SEARCH_LANGUAGES. Each item says who
  * may see it inside its source (`visibility`); service tokens see only
  * items meant for everyone.
@@ -30,7 +39,7 @@ export type IndexedItem = {
   metadata: Record<string, unknown>;
   related: { ref: string; relation: string }[];
   visibility: "all" | "groups";
-  /** `group:<name>` and `kc:<Keycloak group ID>` entries. */
+  /** `group:<group path>`, `team:<name>` and `kc:<Keycloak group ID>` entries. */
   visibilityGroups: string[];
   occurredAt: Date | null;
   changedAt: Date | null;
@@ -121,6 +130,15 @@ export async function upsertItem(db: DbOrTx, sourceId: string, item: IndexedItem
     });
 }
 
+/** Removes the items of a source that are not in `keep`; returns how many. */
+export async function removeItemsExcept(db: DbOrTx, sourceId: string, keep: string[]): Promise<number> {
+  const removed = await db
+    .delete(items)
+    .where(and(eq(items.sourceId, sourceId), notInArray(items.externalId, keep)))
+    .returning({ id: items.id });
+  return removed.length;
+}
+
 /** Removes an item; true when Connector had it. */
 export async function removeItem(db: DbOrTx, sourceId: string, externalId: string): Promise<boolean> {
   const removed = await db
@@ -131,13 +149,18 @@ export async function removeItem(db: DbOrTx, sourceId: string, externalId: strin
 }
 
 /**
- * The visibility keys of a caller: `kc:<id>` for their Keycloak groups, and
- * `team:<name>` for their groups below `teamPrefix` (`/teams/Programs` with
- * the prefix `/teams` is the team "Programs"). Service tokens have none.
+ * The visibility keys of a caller: `group:<path>` for each of their groups
+ * (exactly that group, not its subgroups), `kc:<id>` for their Keycloak
+ * groups, and `team:<name>` for their groups below `teamPrefix`
+ * (`/teams/Programs` with the prefix `/teams` is the team "Programs").
+ * Service tokens have none.
  */
 export function visibilityKeys(principal: Principal, teamPrefix: string | null = null): string[] {
   if (principal.kind === "service") return [];
-  const keys = principal.groupIds.map((id) => `kc:${id}`);
+  const keys = [
+    ...principal.groups.map((group) => `group:${normalizeGroup(group)}`),
+    ...principal.groupIds.map((id) => `kc:${id}`),
+  ];
   const prefix = teamPrefix?.trim().replace(/^\/+|\/+$/g, "");
   if (prefix) {
     for (const group of principal.groups) {
@@ -148,8 +171,8 @@ export function visibilityKeys(principal: Principal, teamPrefix: string | null =
   return keys;
 }
 
-function visible(principal: Principal, teamPrefix: string | null): SQL {
-  const keys = visibilityKeys(principal, teamPrefix);
+/** Items for everyone, and items for one of the caller's keys. */
+function visible(keys: string[]): SQL {
   if (keys.length === 0) return sql`${items.visibility} = 'all'`;
   const array = sql`array[${sql.join(
     keys.map((key) => sql`${key}`),
@@ -169,22 +192,32 @@ function snippetOf(text: string) {
 
 /**
  * An index adapter for a webhook kind; `authorityOf` places items in the
- * source order; `teamPrefix` reads the team group prefix from the source's
- * settings (Library).
+ * source order (with the source's settings as they are now); `teamPrefix`
+ * reads the team group prefix from the source's settings (Library).
  */
 export function indexAdapter(
   kind: SourceKind,
-  authorityOf: (row: Pick<Row, "type" | "inForce">) => Authority,
-  options: { teamPrefix?: (config: Record<string, unknown>) => string | null } = {},
+  authorityOf: (row: Row, config: Record<string, unknown>) => Authority,
+  options: {
+    teamPrefix?: (config: Record<string, unknown>) => string | null;
+    /** Whether the caller's groups count inside the source; returning `false` limits them to items for everyone. */
+    groupsCount?: (principal: Principal, source: SourceRow) => boolean;
+  } = {},
 ): Adapter {
   const teamPrefix = (config: Record<string, unknown>) => options.teamPrefix?.(config) ?? null;
-  const hit = (row: Row, snippet?: string | null): Hit => ({
+  const visibleTo = (context: AdapterContext) =>
+    visible(
+      options.groupsCount && !options.groupsCount(context.principal, context.source)
+        ? []
+        : visibilityKeys(context.principal, teamPrefix(context.config)),
+    );
+  const hit = (row: Row, config: Record<string, unknown>, snippet?: string | null): Hit => ({
     type: row.type,
     externalId: row.externalId,
     title: row.ref ? `${row.ref}: ${row.title}` : row.title,
     url: row.url,
     snippet: snippet ? snippetOf(snippet) : snippetOf(row.summary || row.body),
-    authority: authorityOf(row),
+    authority: authorityOf(row, config),
     date: iso(row.changedAt ?? row.occurredAt),
     status: row.status,
   });
@@ -225,12 +258,12 @@ export function indexAdapter(
           and(
             eq(items.sourceId, context.source.id),
             sql`(${items.searchVector} @@ ${q} or upper(coalesce(${items.ref}, '')) = ${ref})`,
-            visible(context.principal, teamPrefix(context.config)),
+            visibleTo(context),
           ),
         )
         .orderBy(desc(score), desc(sql`coalesce(${items.changedAt}, ${items.occurredAt})`))
         .limit(limit);
-      return rows.map(({ row, snippet }) => hit(row, snippet));
+      return rows.map(({ row, snippet }) => hit(row, context.config, snippet));
     },
 
     async fetch(context, type, externalId) {
@@ -242,7 +275,7 @@ export function indexAdapter(
             eq(items.sourceId, context.source.id),
             eq(items.externalId, externalId),
             eq(items.type, type),
-            visible(context.principal, teamPrefix(context.config)),
+            visibleTo(context),
           ),
         );
       if (!row) return null;
@@ -252,20 +285,14 @@ export function indexAdapter(
           ? await context.db
               .select({ ref: items.ref, type: items.type, externalId: items.externalId, title: items.title })
               .from(items)
-              .where(
-                and(
-                  eq(items.sourceId, context.source.id),
-                  inArray(items.ref, refs),
-                  visible(context.principal, teamPrefix(context.config)),
-                ),
-              )
+              .where(and(eq(items.sourceId, context.source.id), inArray(items.ref, refs), visibleTo(context)))
           : [];
       const item: FetchedItem = {
         type: row.type,
         externalId: row.externalId,
         title: row.ref ? `${row.ref}: ${row.title}` : row.title,
         url: row.url,
-        authority: authorityOf(row),
+        authority: authorityOf(row, context.config),
         date: iso(row.changedAt ?? row.occurredAt),
         status: row.status,
         text: row.body,
@@ -297,12 +324,12 @@ export function indexAdapter(
           and(
             eq(items.sourceId, context.source.id),
             gte(sql`coalesce(${items.changedAt}, ${items.occurredAt}, ${items.updatedAt})`, since),
-            visible(context.principal, teamPrefix(context.config)),
+            visibleTo(context),
           ),
         )
         .orderBy(desc(sql`coalesce(${items.changedAt}, ${items.occurredAt}, ${items.updatedAt})`))
         .limit(limit);
-      return rows.map((row) => hit(row));
+      return rows.map((row) => hit(row, context.config));
     },
   };
 }

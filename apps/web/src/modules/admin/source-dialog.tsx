@@ -52,6 +52,8 @@ export type SourceForm = {
   apiKey: string;
   types: CrmRecordType[];
   teamGroupPrefix: string;
+  /** IT Knowledge Base: sections whose pages rank as rules, comma-separated. */
+  ruleSections: string;
   webhookSecret: string;
   integrationSecret: string;
   databases: NotionDatabaseRow[];
@@ -77,6 +79,7 @@ export function emptyForm(kind: SourceKind = "handbook"): SourceForm {
     apiKey: "",
     types: DEFAULT_TYPES,
     teamGroupPrefix: "",
+    ruleSections: kind === "itkb" ? "policies" : "",
     webhookSecret: "",
     integrationSecret: "",
     databases: [emptyNotionDatabase()],
@@ -134,6 +137,7 @@ export function formOf(source: Source): SourceForm {
     allowLinking: config.allowLinking !== false,
     types: Array.isArray(config.types) ? (config.types as CrmRecordType[]) : DEFAULT_TYPES,
     teamGroupPrefix: text(config.teamGroupPrefix),
+    ruleSections: Array.isArray(config.ruleSections) ? (config.ruleSections as string[]).join(", ") : "",
     databases: databasesOf(config.databases),
     apiUrl: text(config.apiUrl),
   };
@@ -161,6 +165,8 @@ export function configOf(form: SourceForm): Record<string, unknown> {
       return { baseUrl, types: form.types };
     case "library":
       return { baseUrl, teamGroupPrefix: form.teamGroupPrefix.trim() || null };
+    case "itkb":
+      return { baseUrl, ruleSections: list(form.ruleSections) };
     case "logbook":
       return { baseUrl };
     case "notion":
@@ -186,6 +192,7 @@ function secretOf(form: SourceForm): Record<string, string> {
       return pick("integrationSecret", form.integrationSecret);
     case "logbook":
     case "library":
+    case "itkb":
       return pick("webhookSecret", form.webhookSecret);
   }
 }
@@ -433,7 +440,18 @@ export function SourceDialog(props: {
               onChange={(value) => set("teamGroupPrefix", value)}
             />
           ) : null}
-          {form.kind === "logbook" || form.kind === "library" ? (
+          {form.kind === "itkb" ? (
+            <TextField
+              id="source-rule-sections"
+              label={t("ruleSections")}
+              hint={t("ruleSectionsHint")}
+              value={form.ruleSections}
+              placeholder="policies"
+              error={fields["config.ruleSections"]}
+              onChange={(value) => set("ruleSections", value)}
+            />
+          ) : null}
+          {SOURCE_KIND_INFO[form.kind].delivery === "webhook" ? (
             <TextField
               id="source-webhook-secret"
               label={t("webhookSecret")}

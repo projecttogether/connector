@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { ChevronDown } from "lucide-react";
 import { CRM_RECORD_TYPES, type Source, type SourceCheck } from "@connector/shared/api/sources";
-import type { SourceKind } from "@connector/shared/sources";
+import { SOURCE_KIND_INFO, type SourceKind } from "@connector/shared/sources";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -37,12 +37,13 @@ const APP_NAMES: Record<SourceKind, string> = {
   logbook: "Logbook",
   library: "Library",
   notion: "Notion",
+  itkb: "IT Knowledge Base",
 };
 
 /** Where Notion's integrations are made. */
 const NOTION_INTEGRATIONS_URL = "https://www.notion.so/profile/integrations";
 
-const isWebhook = (kind: SourceKind) => kind === "logbook" || kind === "library";
+const isWebhook = (kind: SourceKind) => SOURCE_KIND_INFO[kind].delivery === "webhook";
 
 /** A free name and short name for a new source: Logbook (`logbook`), else Logbook 2 (`logbook-2`), … */
 function freeName(kind: SourceKind, taken: string[]): { name: string; slug: string } {
@@ -436,6 +437,17 @@ function GuideBody(props: {
         error={fields.accessGroups}
         onChange={(value) => set("accessGroups", value)}
       />
+      {kind === "itkb" ? (
+        <TextField
+          id="setup-rule-sections"
+          label={t("ruleSections")}
+          hint={t("ruleSectionsHint")}
+          value={form.ruleSections}
+          placeholder="policies"
+          error={fields["config.ruleSections"]}
+          onChange={(value) => set("ruleSections", value)}
+        />
+      ) : null}
       {kind === "library" ? (
         <TextField
           id="setup-team-prefix"
@@ -490,10 +502,12 @@ function GuideBody(props: {
         {accessStep}
         <GuideStep number={next()} title={t("sendTitle", { app })} done={delivered} locked={!source}>
           <p className="text-sm">
-            {withLink(
-              t("sendText", { app }),
-              <AppLink href={base ? `${base}/admin/integrations` : null}>{t("sendLink")}</AppLink>,
-            )}
+            {kind === "itkb"
+              ? t("sendTextItkb")
+              : withLink(
+                  t("sendText", { app }),
+                  <AppLink href={base ? `${base}/admin/integrations` : null}>{t("sendLink")}</AppLink>,
+                )}
           </p>
           <CopyRow label={t("fieldWebhookUrl")} value={webhookUrl} testId="webhook-url" />
           {secret ? (
@@ -519,7 +533,9 @@ function GuideBody(props: {
               </Button>
             </>
           )}
-          <p className="text-muted-foreground text-sm">{t("sendEnvironment", { app })}</p>
+          {kind === "itkb" ? null : (
+            <p className="text-muted-foreground text-sm">{t("sendEnvironment", { app })}</p>
+          )}
         </GuideStep>
         <GuideStep number={next()} title={t("waitTitle")} done={delivered} locked={!source}>
           {refused && source?.status ? (
@@ -535,7 +551,7 @@ function GuideBody(props: {
             </Outcome>
           ) : (
             <Outcome state="waiting" title={t("waiting", { app })}>
-              <p>{t("waitingHint", { app })}</p>
+              <p>{kind === "itkb" ? t("waitingHintItkb") : t("waitingHint", { app })}</p>
             </Outcome>
           )}
           {delivered ? (

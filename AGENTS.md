@@ -2,7 +2,7 @@
 
 Connector is ProjectTogether's open-source memory layer for AI agents: one
 MCP connection for agents (and an API for bots) to Handbook, Logbook,
-Library, CRM and Notion, with permissions checked before anything is returned and
+Library, CRM, Notion and the IT Knowledge Base, with permissions checked before anything is returned and
 every result linked to its source. User documentation is in `docs/`;
 contributor setup is in `CONTRIBUTING.md`; how it works inside is in
 `docs/architecture.md`.
